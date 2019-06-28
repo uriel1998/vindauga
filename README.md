@@ -6,8 +6,9 @@ Download and display album art or display embedded (or folder-based) album art u
             │┌┘│││││ ││─┤│ ││ ┬│─┤
             └┘ ┆┆└┘┆─┘┘ ┆┆─┘┆─┘┘ ┆
 
-
 ![Output example](https://github.com/uriel1998/vindauga/blob/master/output.gif "Example output")
+
+
 
 ## Contents
  1. [About](#1-about)
@@ -19,7 +20,6 @@ Download and display album art or display embedded (or folder-based) album art u
  5. [TODO](#5-todo)
 
 ***
-
 
 ## 1. About
 
