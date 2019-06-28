@@ -2,9 +2,9 @@
 
 Download and display album art or display embedded (or folder-based) album art using a bash script; a largely rewritten fork of kunst
 
-┐ ┬o┌┐┐┬─┐┬─┐┬ ┐┌─┐┬─┐
-│┌┘│││││ ││─┤│ ││ ┬│─┤
-└┘ ┆┆└┘┆─┘┘ ┆┆─┘┆─┘┘ ┆
+            ┐ ┬o┌┐┐┬─┐┬─┐┬ ┐┌─┐┬─┐
+            │┌┘│││││ ││─┤│ ││ ┬│─┤
+            └┘ ┆┆└┘┆─┘┘ ┆┆─┘┆─┘┘ ┆
 
 
 ![Output example](https://github.com/uriel1998/vindauga/blob/master/output.gif "Example output")
