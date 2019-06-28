@@ -210,3 +210,4 @@ the default location (or location specified in the rc file).
  * Embed found album art, if desired.
  * Create script to retrieve artwork without using `vindauga`
  * Specify different mpd profiles to MPC so that you can view albumart for a remote MPD
+ * Incorporate makefile for those who want it?
