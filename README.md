@@ -2,9 +2,7 @@
 
 Download and display album art or display embedded (or folder-based) album art using a bash script; a largely rewritten fork of kunst
 
-            ┐ ┬o┌┐┐┬─┐┬─┐┬ ┐┌─┐┬─┐
-            │┌┘│││││ ││─┤│ ││ ┬│─┤
-            └┘ ┆┆└┘┆─┘┘ ┆┆─┘┆─┘┘ ┆
+![vindauga logo](https://github.com/uriel1998/vindauga/blob/master/vindauga.png "logo")
 
 ![Output example](https://github.com/uriel1998/vindauga/blob/master/output.gif "Example output")
 
@@ -17,7 +15,8 @@ Download and display album art or display embedded (or folder-based) album art u
  4. [How to use](#4-how-to-use)
  5. [Album Art Cache](#5-album-art-cache)
  6. [Using With Conky](#6-using-with-conky)
- 5. [TODO](#5-todo)
+ 7. [Using With SXIV](#6-using-with-sxiv) 
+ 8. [TODO](#8-todo)
 
 ***
 
