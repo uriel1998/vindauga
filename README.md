@@ -6,7 +6,7 @@ Download and display album art or display embedded (or folder-based) album art u
             │┌┘│││││ ││─┤│ ││ ┬│─┤
             └┘ ┆┆└┘┆─┘┘ ┆┆─┘┆─┘┘ ┆
 
-![Output example](https://raw.githubusercontent.com/uriel1998/vindauga/master/output.gif "Example output")
+![Output example](https://github.com/uriel1998/vindauga/blob/master/output.gif "Example output")
 
 ![vindauga logo](https://raw.githubusercontent.com/uriel1998/vindauga/master/vindauga.png "vindauga logo")
 
