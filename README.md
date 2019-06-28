@@ -2,9 +2,9 @@
 
 Download and display album art or display embedded (or folder-based) album art using a bash script; a largely rewritten fork of kunst
 
-![vindauga logo](https://raw.github.com/uriel1998/vindauga/blob/master/vindauga.png "logo")
+![vindauga logo](https://raw.githubusercontent.com/uriel1998/vindauga/master/vindauga.png "logo")
 
-![Output example](https://raw.github.com/uriel1998/vindauga/blob/master/output.gif "Example output")
+![Output example](https://raw.githubusercontent.com/uriel1998/vindauga/master/output.gif "Example output")
 
 
 
