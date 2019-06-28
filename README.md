@@ -9,6 +9,8 @@ Download and display album art or display embedded (or folder-based) album art u
 <br /><br />
 ![Output example](https://github.com/uriel1998/vindauga/blob/master/output.gif "Example output")
 </p>
+
+
 ## Contents
  1. [About](#1-about)
  2. [License](#2-license)
