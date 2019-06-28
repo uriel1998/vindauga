@@ -4,11 +4,11 @@ Download and display album art or display embedded (or folder-based) album art u
 
 
 
-<p align="center">
+<center>
 ![vindauga logo](https://raw.githubusercontent.com/uriel1998/vindauga/master/vindauga.png "vindauga logo")
 <br /><br />
 ![Output example](https://github.com/uriel1998/vindauga/blob/master/output.gif "Example output")
-</p>
+</center>
 
 
 ## Contents
