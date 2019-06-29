@@ -128,24 +128,28 @@ allowing for backward compatibility.
 The cache - by default in `$HOME/.cache/vindauga` - stores the discovered and 
 cached album art in the format:
 
-`[ArtistName].[AlbumName].album.jpg`
+`[ArtistName]-[AlbumName].album.jpg`
+
+This is deliberately *very* similar to the way `Ario` and other programs store 
+the information.
 
 For example, a partial list of my cache is:
+
 ```
-Aesthetic Perfection.Love Like Lies.album.jpg
-Asking Alexandria.A Lesson Never Learned.album.jpg
-Avatar.Hail the Apocalypse.album.jpg
-Fear Factory.Demanufacture.album.jpg
-Front Line Assembly.Echoes.album.jpg
-In Flames.I, the Mask.album.jpg
-Kidneythieves.Zerøspace.album.jpg
-KMFDM.Naïve: Hell to Go.album.jpg
-Ministry.ΚΕΦΑΛΗΞΘ.album.jpg
-Nine Inch Nails.24.24.2.2527 [Deceased].album.jpg
-Skinny Puppy.Mind: The Perpetual Intercourse.album.jpg
-THE FEVER 333.STRENGTH IN NUMB333RS.album.jpg
-Throbbing Gristle.The First Annual Report of Throbbing Gristle.album.jpg
-外山雄三.Civilization V.album.jpg
+Aesthetic Perfection-Love Like Lies.album.jpg
+Asking Alexandria-A Lesson Never Learned.album.jpg
+Avatar-Hail the Apocalypse.album.jpg
+Fear Factory-Demanufacture.album.jpg
+Front Line Assembly-Echoes.album.jpg
+In Flames-I, the Mask.album.jpg
+Kidneythieves-Zerøspace.album.jpg
+KMFDM-Naïve: Hell to Go.album.jpg
+Ministry-ΚΕΦΑΛΗΞΘ.album.jpg
+Nine Inch Nails-24.24.2.2527 [Deceased].album.jpg
+Skinny Puppy-Mind: The Perpetual Intercourse.album.jpg
+THE FEVER 333-STRENGTH IN NUMB333RS.album.jpg
+Throbbing Gristle-The First Annual Report of Throbbing Gristle.album.jpg
+外山雄三-Civilization V.album.jpg
 
 ```
 
@@ -213,3 +217,4 @@ Or if you don't want to move it around, and have it be below other windows:
  * Create script to retrieve artwork without or using `vindauga`
  * Specify different mpd profiles to MPC so that you can view albumart for a remote MPD
  * Incorporate makefile for those who want it?
+ * Automatically softlink data for Ario, etc.

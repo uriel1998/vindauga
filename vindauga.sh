@@ -127,8 +127,8 @@ update_cover() {
         ##########################################################################
         EscapedArtist=$(echo "${mpd_array[0]}" | sed -e 's/[/()&]//g')
         EscapedAlbum=$(echo "${mpd_array[1]}" | sed -e 's/[/()&]//g')
-        #cachecover=$(printf "%s/%s.%s.album.jpg" "$cachedir" "${mpd_array[0]}" "${mpd_array[1]}")
-        cachecover=$(printf "%s/%s.%s.album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
+        #cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "${mpd_array[0]}" "${mpd_array[1]}")
+        cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
         if [[ ! -f "$cachecover" ]] ;then
 
             ##########################################################################
