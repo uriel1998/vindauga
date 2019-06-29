@@ -82,16 +82,19 @@ This project is licensed under the MIT license. For the full license, see `LICEN
  * `jq` command-line tool for parsing JSON data. `jq` can be found on major Linux distributions or on [GitHub](https://github.com/stedolan/jq)
 
 ### You do not have to choose all or any of these.
-
+ 
+ * [Optional] `ionice`, to lower the io priority of the script. `ionice` can be found on major Linux distributions.
  * [Optional] `sxiv`, the Simple X Image Viewer, available in most major distributions or on [GitHub](https://github.com/muennich/sxiv)
  * [Optional] `conky`, a light-weight system monitor for X available in most major distributions or on [GitHub](https://github.com/brndnmtthws/conky)
  * [Optional] `simple_placeholder_images` to subsitute in generic images found online when cover art is not found. Available on [GitHub](https://github.com/uriel1998/simple_placeholder_images),[GitLab](https://gitlab.com/uriel1998/simple_placeholder_images), or my [personal repository](https://git.faithcollapsing.com/simple_placeholder_images)
 
 ## 4. How to use
 
- * As a daemon: Execute `vindauga.sh` from the terminal.
+ * As a daemon: Execute `vindauga.sh` from the terminal. It is safe to run it as `vindauga.sh &` and use the `-k` switch to kill a running vindauga process.
+ * If `ionice` is detected, it is automatically applied to the current script.
  * To run it once (for example, from within a `conky` configuration), execute `vindauga.sh -c` . Note that this is almost certainly less efficient than running it as a daemon.
  * To not call `sxiv`, execute `vindauga -y`.
+ * To kill an existing background `vindauga`, execute `vindauga -k`. This will kill both the instance of `sxiv` in use and the background script.
 
 ### vindauga.rc
 
@@ -171,7 +174,7 @@ the default location (or location specified in the rc file).
 
 ### SXIV and OpenBox
 
-    I use this configuration with my OpenBox:
+I use this configuration with my OpenBox:
 
 ```
     <application class="Sxiv">
@@ -184,7 +187,7 @@ the default location (or location specified in the rc file).
     </application>  
 ```    
 
-    Or if you don't want to move it around, and have it be other windows:
+Or if you don't want to move it around, and have it be below other windows:
 
 ```
     <application class="Sxiv">
@@ -207,6 +210,6 @@ the default location (or location specified in the rc file).
  * Get artist images for display
  * Write folder.jpg and cover.jpg to music directories, if desired.
  * Embed found album art, if desired.
- * Create script to retrieve artwork without using `vindauga`
+ * Create script to retrieve artwork without or using `vindauga`
  * Specify different mpd profiles to MPC so that you can view albumart for a remote MPD
  * Incorporate makefile for those who want it?

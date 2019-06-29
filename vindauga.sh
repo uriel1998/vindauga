@@ -11,6 +11,13 @@
 # A (rather rewritten) fork of kunst (originally by Siddharth Dushantha)
 
 
+##############################################################################
+# Use ionice if it exists
+##############################################################################
+HasIonice=$(which ionice)
+if [ -f "$HasIonice" ];then
+    "$HasIonice" -c3 -p$$
+fi
 
 tempcover=$(mktemp)
 RunOnce=""
@@ -96,7 +103,10 @@ display_help() {
 	echo "Download and display album art or display embedded album art"
 	echo " "
 	echo "optional arguments:"
-	echo "   -h, --help            show this help message and exit"
+	echo "   -h     show this help message and exit"
+	echo "   -c     run once and exit"    
+	echo "   -y     do not use sxiv (e.g. for the art to be picked up by conky)"        
+	echo "   -k     kill an existing background instance of vindauga"        
 }
 
 ##############################################################################
@@ -220,10 +230,17 @@ pre_exit() {
     # because if the user quits sxiv before they
     # exit vindauga, an error will be shown
     # from kill and we dont want that
-	kill -9 $(cat /tmp/vindauga.pid) &> /dev/null
+	kill -9 $(cat /tmp/sxiv.pid) &> /dev/null
  
 }
 
+killing() {
+    
+pre_exit
+kill -9 $(cat /tmp/vindauga.pid) &> /dev/null
+
+exit
+}
 
 main() {
 
@@ -250,11 +267,12 @@ main() {
             
             if [ $FIRST_RUN == true ]; then
                 FIRST_RUN=false
-            
+                
+                echo "$$" >/tmp/vindauga.pid
                 # Display the album art using sxiv
                 geometrystring=$(printf "%sx%s+%s+%s" "$display_size" "$display_size" "$XCoord" "$YCoord")
                 sxiv -g "$geometrystring" -b "$cachedir"/nowplaying.album.jpg -S 2 -N "vindauga" &
-                echo $! >/tmp/vindauga.pid
+                echo $! >/tmp/sxiv.pid
                 SXIVPID=$(echo $!)
 			fi
 			# Save the process ID so that we can kill
@@ -284,6 +302,8 @@ option="$1"
     shift ;;         
     -y) NoSXIV="true"
     shift ;;       
+    -k) killing
+    shift ;;    
     esac
 done
 
