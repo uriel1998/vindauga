@@ -267,8 +267,6 @@ main() {
             
             if [ $FIRST_RUN == true ]; then
                 FIRST_RUN=false
-                
-                echo "$$" >/tmp/vindauga.pid
                 # Display the album art using sxiv
                 geometrystring=$(printf "%sx%s+%s+%s" "$display_size" "$display_size" "$XCoord" "$YCoord")
                 sxiv -g "$geometrystring" -b "$cachedir"/nowplaying.album.jpg -S 2 -N "vindauga" &
@@ -307,6 +305,7 @@ option="$1"
     esac
 done
 
+echo "$$" > /tmp/vindauga.pid
 
 init
 # Disable CTRL-Z because if we allowed this key press,
