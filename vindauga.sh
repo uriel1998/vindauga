@@ -22,6 +22,7 @@ fi
 tempcover=$(mktemp)
 RunOnce=""
 NoSXIV="false"
+DynamicConky="false"
 cachecover=""
 SXIVPID=""
 ##############################################################################
@@ -39,6 +40,7 @@ init (){
         display_size=${line[9]} 
         XCoord=${line[11]} 
         YCoord=${line[13]} 
+        ConkyFile=${line[15]} 
     fi
 
     if [ -z "$MusicDir" ] || [ ! d "$MusicDir" ]; then
@@ -58,6 +60,9 @@ init (){
     fi
     if [ ! -d "$cachedir" ];then
         mkdir -p "$cachedir"
+    fi
+    if [ -z "$ConkyFile" ];then
+        ConkyFile="$HOME/.conky/vindauga_conkyrc"
     fi
 
 
@@ -230,14 +235,22 @@ pre_exit() {
     # because if the user quits sxiv before they
     # exit vindauga, an error will be shown
     # from kill and we dont want that
-	kill -9 $(cat /tmp/sxiv.pid) &> /dev/null
- 
+    if [ -f /tmp/sxiv.pid ];then
+        kill -9 $(cat /tmp/sxiv.pid) &> /dev/null
+        rm /tmp/sxiv.pid
+    fi
+    if [ -f /tmp/vconky.pid ];then    
+        kill -9 $(cat /tmp/vconky.pid) &> /dev/null
+        rm /tmp/vconky.pid
+    fi
 }
 
 killing() {
     
 pre_exit
-kill -9 $(cat /tmp/vindauga.pid) &> /dev/null
+VPID=$(cat /tmp/vindauga.pid)
+rm /tmp/vindauga.pid
+kill -9 "$VPID" &> /dev/null
 
 exit
 }
@@ -276,6 +289,24 @@ main() {
 			# Save the process ID so that we can kill
 			# sxiv when the user exits the script
 
+        else
+            if [ "$DynamicConky" = "true" ]; then
+
+                # Resetting Conky if need be
+                if [ ! -z "$VCONKYPID" ];then
+                    if ! ps -p "$VCONKYPID" > /dev/null 
+                    then
+                        FIRST_RUN=true
+                    fi
+                fi
+                if [ $FIRST_RUN == true ]; then
+                    FIRST_RUN=false 
+                    conky -c "$ConkyFile" &
+                    echo $! >/tmp/vconky.pid
+                    VCONKYPID=$(echo $!)
+
+                fi
+            fi
 		fi
 
         if [ "$RunOnce" = "true" ];then
@@ -298,6 +329,8 @@ option="$1"
     -h) display_help
     exit
     shift ;;         
+    -z) DynamicConky="true"
+    shift ;;      
     -y) NoSXIV="true"
     shift ;;       
     -k) killing

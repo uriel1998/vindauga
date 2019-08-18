@@ -90,11 +90,14 @@ This project is licensed under the MIT license. For the full license, see `LICEN
 
 ## 4. How to use
 
- * As a daemon: Execute `vindauga.sh` from the terminal. It is safe to run it as `vindauga.sh &` and use the `-k` switch to kill a running vindauga process.
+ * As a daemon: Execute `vindauga.sh` from the terminal. It is safe to run it as `vindauga.sh &` and use the `-k` switch to kill a running vindauga process. 
  * If `ionice` is detected, it is automatically applied to the current script.
  * To run it once (for example, from within a `conky` configuration), execute `vindauga.sh -c` . Note that this is almost certainly less efficient than running it as a daemon.
  * To not call `sxiv`, execute `vindauga -y`.
+ * To invoke vindauga's control of its conky window, execute `vindauga -z` - though realistically you should probably `vindauga -y -z`.
  * To kill an existing background `vindauga`, execute `vindauga -k`. This will kill both the instance of `sxiv` in use and the background script.
+
+ For example, as I use the conky interface, I have two keybinds.  One calls `vindauga -y -z`.  That starts vindauga and the conky interface. The other calls `vindauga -k` and kills the process efficiently.  You can even do this in a single script. For example, a single binding that calls `vindauga_toggle.sh` will start the conky process and daemon, and a second run of it will turn it off.
 
 ### vindauga.rc
 
@@ -117,7 +120,8 @@ $HOME/.cache/vindauga
 64
 #SXIV Y position
 64
-
+#ConkyFile location
+$HOME/.conky/vindauga_conkyrc
 ```
 
 As the functionality expands, additional lines may be added to the bottom, 
@@ -164,7 +168,11 @@ that has the information and layout that I want. You can obviously incorporate
 this into your own conky or edit it to your aesthetic delight.  Editing `conky` 
 configurations is well past the scope of this document.
 
-See the file `vindauga_conkyrc` for the example.
+See the file `vindauga_conkyrc` for the example.  It includes both the base image 
+seen in the screenshot below as well as an XCF file if you wish to design your 
+own. 
+
+![Output example](https://raw.githubusercontent.com/uriel1998/vindauga/master/updated_vindauga_conky.png "Example output")
 
 ## 7. Using with SXIV
 
