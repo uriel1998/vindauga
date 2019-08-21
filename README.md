@@ -15,8 +15,9 @@ Download and display album art or display embedded (or folder-based) album art u
  4. [How to use](#4-how-to-use)
  5. [Album Art Cache](#5-album-art-cache)
  6. [Using With Conky](#6-using-with-conky)
- 7. [Using With SXIV](#6-using-with-sxiv) 
- 8. [TODO](#8-todo)
+ 7. [Using With SXIV](#7-using-with-sxiv) 
+ 8. [Cantata Helper](#8-cantata-helper)
+ 9. [TODO](#9-todo)
 
 ***
 
@@ -122,6 +123,8 @@ $HOME/.cache/vindauga
 64
 #ConkyFile location
 $HOME/.conky/vindauga_conkyrc
+#Last.FM API key (OPTIONAL)
+
 ```
 
 As the functionality expands, additional lines may be added to the bottom, 
@@ -160,6 +163,10 @@ Throbbing Gristle-The First Annual Report of Throbbing Gristle.album.jpg
 When there is a special character - `/()&` - it is completely omitted in 
 writing the cache filename. This is intentional behavior to minimize the 
 number of times that the program chokes. (Hopefully zero!)
+
+The artist image is likewise obtained from Deezer or Last.fm (if you obtain a
+last.fm [API key](https://www.last.fm/api) and put it in the config file) and 
+stored in the cache directory.
 
 ## 6. Using with Conky
 
@@ -217,12 +224,20 @@ Or if you don't want to move it around, and have it be below other windows:
     </application>       
 ```
 
-## 8. Todo
+## 8. Cantata Helper
 
- * Get artist images for display
+The artist images that Cantata fetches are - for me at least - frequently not 
+correct. I'm not sure why, honestly. But I figured that since I'm pulling down 
+the artist images anyway and storing them in the cache directory, I might as 
+well use them. The script `cantata-helper.sh` reads vindauga's rc, then symlinks 
+the appropriate artist images from vindauga's cache.  
+
+## 9. Todo
+
  * Write folder.jpg and cover.jpg to music directories, if desired.
  * Embed found album art, if desired.
  * Create script to retrieve artwork without or using `vindauga`
  * Specify different mpd profiles to MPC so that you can view albumart for a remote MPD
  * Incorporate makefile for those who want it?
- * Automatically softlink data for Ario, etc.
+ * Automatically softlink data for Ario / GMPC
+ * Automatically softlink albumart for cantata
