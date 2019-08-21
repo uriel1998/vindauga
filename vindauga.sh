@@ -20,6 +20,7 @@ if [ -f "$HasIonice" ];then
 fi
 
 tempcover=$(mktemp)
+tempartist=$(mktemp)
 RunOnce=""
 NoSXIV="false"
 DynamicConky="false"
@@ -41,6 +42,7 @@ init (){
         XCoord=${line[11]} 
         YCoord=${line[13]} 
         ConkyFile=${line[15]} 
+        LastfmAPIKey=${line[17]}
     fi
 
     if [ -z "$MusicDir" ] || [ ! d "$MusicDir" ]; then
@@ -115,6 +117,54 @@ display_help() {
 }
 
 ##############################################################################
+# Big updating artist function
+##############################################################################
+
+update_artist() {
+    
+    cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
+    cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")    
+
+    ######################################################################
+    #  Artist image
+    ######################################################################
+    if [[ ! -f "$cacheartist" ]] ;then
+       
+
+        if [ -z "$IMG_URL" ];then    
+            API_URL="https://api.deezer.com/search/artist?q=$EscapedArtist" && API_URL=${API_URL//' '/'%20'}
+            IMG_URL=$(curl -s "$API_URL" | jq -r '.data[0] | .picture_big ')
+        
+            #deezer outputs a wonky url if there's no image match, this checks for it.
+            # https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg
+            check=$(awk 'BEGIN{print gsub(ARGV[2],"",ARGV[1])}' "$IMG_URL" "//")
+            if [ "$check" != "1" ]; then
+                IMG_URL=""
+            fi
+        fi
+
+        if [ ! -z "$LastfmAPIKey" ] && [ -z "$IMG_URL" ];then  # deezer first, then lastfm
+            METHOD=artist.getinfo
+            API_URL="https://ws.audioscrobbler.com/2.0/?method=$METHOD&artist=$EscapedArtist&api_key=$LastfmAPIKey&format=json" && API_URL=${API_URL//' '/'%20'}
+            IMG_URL=$(curl -s "$API_URL" | jq -r ' .artist | .image ' | grep -B1 -w "extralarge" | grep -v "extralarge" | awk -F '"' '{print $4}')            
+        fi           
+        
+        wget -q "$IMG_URL" -O "$tempartist"
+        bob=$(file "$tempartist" | head -1)  #It really is an image
+        sizecheck=$(wc -c "$tempartist" | awk '{print $1}')
+        if [[ "$bob" == *"image data"* ]];then
+            if [ "$sizecheck" != "4195" ];then
+                convert "$tempartist" "$cacheartist"
+                rm "$tempartist"
+            fi
+        fi
+        rm "$tempartist"
+    fi
+ 
+    
+}
+
+##############################################################################
 # Big updating cover function
 ##############################################################################
 
@@ -132,8 +182,12 @@ update_cover() {
         ##########################################################################
         EscapedArtist=$(echo "${mpd_array[0]}" | sed -e 's/[/()&]//g')
         EscapedAlbum=$(echo "${mpd_array[1]}" | sed -e 's/[/()&]//g')
-        #cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "${mpd_array[0]}" "${mpd_array[1]}")
+        cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
         cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
+
+    
+        update_artist
+
         if [[ ! -f "$cachecover" ]] ;then
 
             ##########################################################################
@@ -227,6 +281,8 @@ update_cover() {
         fi
     fi
 }
+
+
 
 
 pre_exit() {
