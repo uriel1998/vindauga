@@ -4,6 +4,7 @@ TMPDIR=$(mktemp -d)
 tempartist=$(mktemp)
 #TMPDIR="/home/steven/tmp/ffixer_tmp"
 startdir="$PWD"
+dirlist=$(mktemp)
 
 
 ## To permit vindauga integration
@@ -35,11 +36,20 @@ function cleanup {
     #rm "$tempartist"
 }
 
+#https://www.reddit.com/r/bash/comments/8nau9m/remove_leading_and_trailing_spaces_from_a_variable/
+trim() {
+    local s=$1 LC_CTYPE=C
+    s=${s#"${s%%[![:space:]]*}"}
+    s=${s%"${s##*[![:space:]]}"}
+    printf '%s' "$s"
+}
+
 SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 ENTRIES=$(find -name '*.mp3' -printf '%h\n' | sort -u | grep -c / )
 CURRENTENTRY=1
-for dir in $(find -name '*.mp3' -printf '%h\n' | sort -u)
+find -name '*.mp3' -printf '%h\n' | sort -u | realpath -p > "$dirlist"
+while read line
 do
    
     cleanup
@@ -52,7 +62,7 @@ do
     LOOPEND="False"
     #SONGFILE="$file"
     #SongDir=$(dirname "${SONGFILE}")
-    
+    dir=$(echo "$line")
     SongDir=$(echo "$dir")
     fullpath=$(realpath "$dir")
     SONGFILE=$(find "$fullpath" -name '*.mp3' | head -1) 
@@ -77,11 +87,19 @@ do
         ########################################################################
         # Getting data from song along with a 
         # sed one liner to remove any null bytes that might be in there
-        ########################################################################
-        DATA=`eyeD3 "$SONGFILE" 2>/dev/null | sed 's/\x0//g' `
-        COVER=$(echo "$DATA" |  grep "FRONT_COVER" )
-        ARTIST=$(echo "$DATA" | grep "artist" | grep -v "album" | awk -F ': ' '{print $2}' | sed -e 's/[[:space:]]*$//' | tr -d '\n')
-        ALBUM=$(echo "$DATA" | grep "album" | grep -v "artist" | grep -v "Frame"  | awk -F ': ' '{print $2}' | awk 'BEGIN {FS="\t"}; {print $1}' | sed -e 's/[[:space:]]*$//' | tr -d '\n')
+        # Also switching to ffmpeg for most of the data; speeds it up a LOT
+        ######################################################################## awk '{for(i=2;i<=NF;++i)print $i}'
+        songdata=$(ffprobe "$SONGFILE" 2>&1)
+        # big long grep string to avoid all the possible frakups I found, lol
+        ARTIST=$(echo "$songdata" | grep "artist" | grep -v "mp3," | head -1 | awk -F ': ' '{for(i=2;i<=NF;++i)print $i}')
+        ALBUM=$(echo "$songdata" | grep "album" | head -1 | awk -F ': ' '{for(i=2;i<=NF;++i)print $i}' | tr '\n' ' ')
+        ARTIST=$(trim "$ARTIST")
+        ALBUM=$(trim "$ALBUM")
+        CoverExist=$(echo "$songdata" | grep -c "front")
+        if [ $CoverExist -gt 0 ];then
+            DATA=`eyeD3 "$SONGFILE" 2>/dev/null | sed 's/\x0//g' `
+            COVER=$(echo "$DATA" |  grep "FRONT_COVER" )
+        fi
 
         ####################################################################
         # Does the MP3 have a cover file?
@@ -165,13 +183,13 @@ do
     
     if [ -d "$cachedir" ];then
         if [ -f "$fullpath/cover.jpg" ];then
+
             SONGFILE=$(find "$fullpath" -name '*.mp3' | head -1) 
-            if [ -z "$ARTIST" ];then
-                    DATA=`eyeD3 "$SONGFILE" 2>/dev/null | sed 's/\x0//g' `
-                    COVER=$(echo "$DATA" |  grep "FRONT_COVER" )
-                    ARTIST=$(echo "$DATA" | grep "artist" | grep -v "album" | awk -F ': ' '{print $2}' | sed -e 's/[[:space:]]*$//' | tr -d '\n')
-                    ALBUM=$(echo "$DATA" | grep "album" | grep -v "artist" | grep -v "Frame"  | awk -F ': ' '{print $2}' | awk 'BEGIN {FS="\t"}; {print $1}' | sed -e 's/[[:space:]]*$//' | tr -d '\n')
-            fi
+            songdata=$(ffprobe "$SONGFILE" 2>&1)
+            ARTIST=$(echo "$songdata" | grep "artist" | grep -v "mp3," | head -1 | awk -F ': ' '{for(i=2;i<=NF;++i)print $i}')
+            ALBUM=$(echo "$songdata" | grep "album" | head -1 | awk -F ': ' '{for(i=2;i<=NF;++i)print $i}' | tr '\n' ' ')
+            ARTIST=$(trim "$ARTIST")
+            ALBUM=$(trim "$ALBUM")
             EscapedArtist=$(echo "$ARTIST" | sed -e 's/[/()&]//g')
             EscapedAlbum=$(echo "$ALBUM" | sed -e 's/[/()&]//g')
             cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
@@ -213,5 +231,5 @@ do
             ARTIST=""
         fi
     fi  
-done
+done < "$dirlist"
 IFS=$SAVEIFS
