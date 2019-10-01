@@ -14,7 +14,17 @@
         ConkyFile=${line[15]} 
         LastfmAPIKey=${line[17]}
     fi
+    
+cantatadir1="$HOME/.cache/cantata/covers/"
+cantatadir2="$HOME/.cache/cantata/covers-scaled/136/"
 
+if [ ! -d "$cantatadir1" ];then
+    mkdir -p "$cantatadir1"
+fi
+
+if [ ! -d "$cantatadir2" ];then
+    mkdir -p "$cantatadir2"
+fi
 
 SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
@@ -28,8 +38,7 @@ do
 
     tmp1=$(basename "$file" | sed 's/\(.*\)\(-.*\)/\1.jpg/')
     tmp2=$(basename "$file" | sed 's/\(.*\)\(-.*\)/\1.png/')
-    cantatadir1="$HOME/.cache/cantata/covers/"
-    cantatadir2="$HOME/.cache/cantata/covers-scaled/136/"
+
 
     cfn1=$(printf "%s%s" "$cantatadir1" "$tmp1")
     cfn2=$(printf "%s%s" "$cantatadir2" "$tmp1")
@@ -37,13 +46,15 @@ do
     cfn4=$(printf "%s%s" "$cantatadir2" "$tmp2")    
     
     #removing any cantata-native cachefiles
-    if [ -f "$cfn1"];then rm "$cfn1";fi
-    if [ -f "$cfn2"];then rm "$cfn2";fi
-    if [ -f "$cfn3"];then rm "$cfn3";fi
-    if [ -f "$cfn4"];then rm "$cfn4";fi
+    if [ -f "$cfn1" ];then rm "$cfn1";fi
+    if [ -f "$cfn2" ];then rm "$cfn2";fi
+    if [ -f "$cfn3" ];then rm "$cfn3";fi
+    if [ -f "$cfn4" ];then rm "$cfn4";fi
 
     ln -s "$fullfn" "$cfn1"
     ln -s "$fullfn" "$cfn2"
 
 done
 IFS=$SAVEIFS
+
+#For Ario - same fn, just without -album /home/steven/.config/ario/covers/

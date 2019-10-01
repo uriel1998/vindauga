@@ -1,15 +1,30 @@
 #!/bin/bash
 
 TMPDIR=$(mktemp -d)
-tempartist=$(mktemp)
-#TMPDIR="/home/steven/tmp/ffixer_tmp"
 startdir="$PWD"
 dirlist=$(mktemp)
 
+function cleanup {
+    # I use trash-cli here instead of rm
+    # https://github.com/andreafrancia/trash-cli
+    # Obviously, substitute rm -f for trash if you want to use it.
+    find "$TMPDIR/" -iname "OTHER*"  -exec trash {} \;
+    find "$TMPDIR/" -iname "FRONT_COVER*"  -exec trash {} \;
+    find "$TMPDIR/" -iname "cover*"  -exec trash {} \;    
+    find "$TMPDIR/" -iname "ICON*"  -exec trash {} \;  
+    find "$TMPDIR/" -iname "ILLUSTRATION*"  -exec trash {} \;  
+    
+}
 
-## To permit vindauga integration
-## This is also what triggers the whole vindauga bits as well;
-## if you don't have vindauga, then it's ignored.
+#https://www.reddit.com/r/bash/comments/8nau9m/remove_leading_and_trailing_spaces_from_a_variable/
+trim() {
+    local s=$1 LC_CTYPE=C
+    s=${s#"${s%%[![:space:]]*}"}
+    s=${s%"${s##*[![:space:]]}"}
+    printf '%s' "$s"
+}
+
+
     if [ -f "$HOME/.config/vindauga.rc" ];then
         readarray -t line < "$HOME/.config/vindauga.rc"
         musicdir=${line[1]}
@@ -24,30 +39,11 @@ dirlist=$(mktemp)
     fi
 
 
-function cleanup {
-    # I use trash-cli here instead of rm
-    # https://github.com/andreafrancia/trash-cli
-    # Obviously, substitute rm -f for trash if you want to use it.
-    find "$TMPDIR/" -iname "OTHER*"  -exec trash {} \;
-    find "$TMPDIR/" -iname "FRONT_COVER*"  -exec trash {} \;
-    find "$TMPDIR/" -iname "cover*"  -exec trash {} \;    
-    find "$TMPDIR/" -iname "ICON*"  -exec trash {} \;  
-    find "$TMPDIR/" -iname "ILLUSTRATION*"  -exec trash {} \;  
-    #rm "$tempartist"
-}
-
-#https://www.reddit.com/r/bash/comments/8nau9m/remove_leading_and_trailing_spaces_from_a_variable/
-trim() {
-    local s=$1 LC_CTYPE=C
-    s=${s#"${s%%[![:space:]]*}"}
-    s=${s%"${s##*[![:space:]]}"}
-    printf '%s' "$s"
-}
-
 SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 ENTRIES=$(find -name '*.mp3' -printf '%h\n' | sort -u | grep -c / )
 CURRENTENTRY=1
+find -H . -type f \( -name "*.bz2" -or -name "*.gz"  -or -name "*.iso" -or -name "*.tgz" -or -name "*.rar" -or -name "*.zip" \) -exec chmod 666 '{}' ';'
 find -name '*.mp3' -printf '%h\n' | sort -u | realpath -p > "$dirlist"
 while read line
 do
@@ -180,10 +176,9 @@ do
     ##########################################################################
     # Copy to vindauga cache, if exists And get artist image
     ##########################################################################
-    
+
     if [ -d "$cachedir" ];then
         if [ -f "$fullpath/cover.jpg" ];then
-
             SONGFILE=$(find "$fullpath" -name '*.mp3' | head -1) 
             songdata=$(ffprobe "$SONGFILE" 2>&1)
             ARTIST=$(echo "$songdata" | grep "artist" | grep -v "mp3," | head -1 | awk -F ': ' '{for(i=2;i<=NF;++i)print $i}')
@@ -195,6 +190,7 @@ do
             cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
             cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
 
+
             if [ ! -f "$cacheartist" ];then
                 API_URL="https://api.deezer.com/search/artist?q=$EscapedArtist" && API_URL=${API_URL//' '/'%20'}
                 IMG_URL=$(curl -s "$API_URL" | jq -r '.data[0] | .picture_big ')
@@ -202,17 +198,17 @@ do
                 #deezer outputs a wonky url if there's no image match, this checks for it.
                 # https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg
                 check=$(awk 'BEGIN{print gsub(ARGV[2],"",ARGV[1])}' "$IMG_URL" "//")
+                
                 if [ "$check" != "1" ]; then
                     IMG_URL=""
                 fi
-               
 
                 if [ ! -z "$LastfmAPIKey" ] && [ -z "$IMG_URL" ];then  # deezer first, then lastfm
                     METHOD=artist.getinfo
                     API_URL="https://ws.audioscrobbler.com/2.0/?method=$METHOD&artist=$EscapedArtist&api_key=$LastfmAPIKey&format=json" && API_URL=${API_URL//' '/'%20'}
                     IMG_URL=$(curl -s "$API_URL" | jq -r ' .artist | .image ' | grep -B1 -w "extralarge" | grep -v "extralarge" | awk -F '"' '{print $4}')            
                 fi           
-                
+                tempartist=$(mktemp)
                 wget -q "$IMG_URL" -O "$tempartist"
                 bob=$(file "$tempartist" | head -1)  #It really is an image
                 sizecheck=$(wc -c "$tempartist" | awk '{print $1}')
@@ -226,7 +222,7 @@ do
             
             fi 
             if [ ! -f "$cachecover" ];then
-                cp "$fullpath/cover.jpg" "$cachecover"
+                ln -s "$fullpath/cover.jpg" "$cachecover"
             fi
             ARTIST=""
         fi

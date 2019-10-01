@@ -168,6 +168,9 @@ The artist image is likewise obtained from Deezer or Last.fm (if you obtain a
 last.fm [API key](https://www.last.fm/api) and put it in the config file) and 
 stored in the cache directory.
 
+If you use the `ffixer_covers.sh` file, it will softlink from the music directory. 
+This is obviously superior in terms of space saved.
+
 ## 6. Using with Conky
 
 I have enclosed a basic configuration for `conky` (as seen in the video above) 
