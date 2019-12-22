@@ -57,4 +57,6 @@ do
 done
 IFS=$SAVEIFS
 
+
+#b=${tmp%_*}   # remove suffix starting with "_"
 #For Ario - same fn, just without -album /home/steven/.config/ario/covers/

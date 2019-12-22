@@ -49,12 +49,12 @@ color1 orange
 color2 green
 
 TEXT
-${if_running mpd}${alignr}${mpd_elapsed}/${mpd_length}MPD:${mpd_status}${if_mpd_playing}
+${if_mpd_playing}${alignr}${mpd_elapsed}/${mpd_length}MPD:${mpd_status}
 ${alignr}${mpd_artist 45}
 ${alignr}${mpd_album 45}
 ${alignr}${mpd_title 45}
  ${mpd_bar 7,253}
  ${image /home/steven/.cache/vindauga/nowplaying.album.jpg -p 2,90 -s 256x256}
 ${endif}
-${endif}
+
 
