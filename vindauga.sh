@@ -32,8 +32,8 @@ SXIVPID=""
 
 init (){
 
-    if [ -f "$HOME/.config/vindauga.rc" ];then
-        readarray -t line < "$HOME/.config/vindauga.rc"
+    if [ -f "$IniFile" ];then
+        readarray -t line < "$IniFile"
         musicdir=${line[1]}
         cachedir=${line[3]}
         placeholder_img=${line[5]}
@@ -43,6 +43,7 @@ init (){
         YCoord=${line[13]} 
         ConkyFile=${line[15]} 
         LastfmAPIKey=${line[17]}
+        MPDHost=${line[19]}
     fi
 
     if [ -z "$MusicDir" ] || [ ! d "$MusicDir" ]; then
@@ -66,7 +67,14 @@ init (){
     if [ -z "$ConkyFile" ];then
         ConkyFile="$HOME/.conky/vindauga_conkyrc"
     fi
-
+    # If MPDHost isn't defined, check for env variable, and default to localhost
+    if [ -z "$MPDHost" ];then
+        if [ ! -z "$MPD_HOST" ];then
+            MPDHost="$MPD_HOST"
+        else
+            MPDHost="localhost"
+        fi
+    fi
 
 # This is a base64 endcoded image which will be used if nothing is found    
 read -d '' DEFAULT_COVER << EOF
@@ -113,7 +121,9 @@ display_help() {
 	echo "   -h     show this help message and exit"
 	echo "   -c     run once and exit"    
 	echo "   -y     do not use sxiv (e.g. for the art to be picked up by conky)"        
-	echo "   -k     kill an existing background instance of vindauga"        
+	echo "   -k     kill an existing background instance of vindauga"   
+    echo "   -i     use a specific configuration file"
+    echo "   -t     write mpc output to tempfile for remote mpc and conky"
 }
 
 ##############################################################################
@@ -375,11 +385,16 @@ main() {
    done
 }
 
+#default config file
+IniFile="$HOME/.config/vindauga.rc"
 
 while [ $# -gt 0 ]; do
 option="$1"
     case $option
     in
+    -i) shift
+    IniFile="$1"
+    shift;;
     -c) RunOnce="true"
     shift ;;   
     -h) display_help
