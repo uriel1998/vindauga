@@ -180,7 +180,7 @@ update_artist() {
 
 update_cover() {
 
-    IFS=$'\t' mpd_array=( $(mpc --format "\t%artist%\t%album%\t%file%\t") );
+    IFS=$'\t' mpd_array=( $(mpc --host "$MPDHost" --format "\t%artist%\t%album%\t%file%\t") );
     isPlaying=$(echo "${mpd_array[3]}" | awk -F ']' '{print $1}' | grep -e '^\[p' -c)
 
     if [ "$isPlaying" -gt 0 ];then
@@ -381,7 +381,7 @@ main() {
 
 		# Waiting for an event from mpd; play/pause/next/previous
 		# this is lets vindauga use less CPU :)
-		mpc idle &> /dev/null
+		mpc --host "$MPDHost" idle &> /dev/null
    done
 }
 

@@ -125,6 +125,8 @@ $HOME/.cache/vindauga
 $HOME/.conky/vindauga_conkyrc
 #Last.FM API key (OPTIONAL)
 
+#MPD Host
+PASSWORD@HOST
 ```
 
 As the functionality expands, additional lines may be added to the bottom, 
