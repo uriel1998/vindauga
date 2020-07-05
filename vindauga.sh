@@ -378,7 +378,7 @@ main() {
         if [ "$RunOnce" = "true" ];then
             break
         fi
-
+#TODO - if writing from remote, we can't update mpd so have to manually update
 		# Waiting for an event from mpd; play/pause/next/previous
 		# this is lets vindauga use less CPU :)
 		mpc --host "$MPDHost" idle &> /dev/null
@@ -400,6 +400,8 @@ option="$1"
     -h) display_help
     exit
     shift ;;         
+    -t) TempFile="true"
+    shift ;;  
     -z) DynamicConky="true"
     shift ;;      
     -y) NoSXIV="true"

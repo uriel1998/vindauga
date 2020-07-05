@@ -48,6 +48,9 @@ color0 white
 color1 orange
 color2 green
 
+
+# should be reading from tempfile
+
 TEXT
 ${if_mpd_playing}${alignr}${mpd_elapsed}/${mpd_length}MPD:${mpd_status}
 ${alignr}${mpd_artist 45}
