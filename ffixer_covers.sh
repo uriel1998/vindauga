@@ -68,6 +68,14 @@ do
     ####################################################################
     # Do cover files exist? If so, make sure both cover and folder exist.
     ####################################################################
+    if [ -f "$fullpath/cover.png" ];then
+        convert "$fullpath/cover.png" "$fullpath/cover.jpg"
+        rm "$fullpath/cover.png"
+    fi
+    if [ -f "$fullpath/folder.png" ];then
+        convert "$fullpath/folder.png" "$fullpath/folder.jpg"
+        rm "$fullpath/folder.png"
+    fi
 
     if [ ! -f "$fullpath/cover.jpg" ] && [ -f "$fullpath/folder.jpg" ];then
         cp "$fullpath/folder.jpg" "$fullpath/cover.jpg"

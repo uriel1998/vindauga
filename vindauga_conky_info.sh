@@ -2,7 +2,7 @@
 
  function getInfo() {
 	#mpdinfo=$(mpc --host "$hoststring"  )
-	playingstring=$(echo "$mpdinfo" | head -1 | awk -F '[' '{print $1}') 
+	playingstring=$(echo "$mpdinfo" | head -1 | awk -F '[' '{print $1}' | fold -sw 58 | head -1 ) 
 	percent=$(echo "$mpdinfo" | tail -2 | head -1 | awk '{print $4}')
     printf "%s: %s" "$playingstring" "$percent"
 }
@@ -31,3 +31,4 @@ function main() {
 }
 
 main
+
