@@ -167,8 +167,8 @@ do
         # No albumart file, nothing in MP3
         ####################################################################    
         if [ ! -f "$fullpath/cover.jpg" ];then
-            glyrc cover --artist "$ARTIST" --album "$ALBUM" --formats jpeg --write "$TMPDIR/cover.jpg" --from "musicbrainz;discogs;coverartarchive"
-
+            glyrc cover --timeout 15 --artist "$ARTIST" --album "$ALBUM" --write "$TMPDIR/cover.tmp" --from "musicbrainz;discogs;coverartarchive;rhapsody;lastfm"
+            convert "$TMPDIR/cover.tmp" "$TMPDIR/cover.jpg"
             #tempted to be a hard stop here, because sometimes these covers are just wrong.
             if [ -f "$TMPDIR/cover.jpg" ]; then
                 cp "$TMPDIR/cover.jpg" "$fullpath/cover.jpg"
@@ -197,7 +197,12 @@ do
             EscapedAlbum=$(echo "$ALBUM" | sed -e 's/[/()&]//g')
             cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
             cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
-
+            
+            #Adding in glyrc search for artist image first...
+            if [ ! -f "$cacheartist" ];then
+                glyrc cover --timeout 15 --artist "$ARTIST" --album "$ALBUM" --write "$TMPDIR/artist.tmp" --from "discogs;lastfm;bbcmusic;picsearch;rhapsody;singerpictures;flickr;google"
+                convert "$TMPDIR/artist.tmp" "$cacheartist"
+            fi
 
             if [ ! -f "$cacheartist" ];then
                 API_URL="https://api.deezer.com/search/artist?q=$EscapedArtist" && API_URL=${API_URL//' '/'%20'}
