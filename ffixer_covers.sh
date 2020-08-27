@@ -198,16 +198,17 @@ do
             cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
             cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
             
-            #Adding in glyrc search for artist image first...
+            #Adding in glyrc search for artist image...
             if [ ! -f "$cacheartist" ];then
-                glyrc cover --timeout 15 --artist "$ARTIST" --album "$ALBUM" --write "$TMPDIR/artist.tmp" --from "discogs;lastfm;bbcmusic;picsearch;rhapsody;singerpictures;flickr;google"
+                glyrc artistphoto --timeout 15 --artist "$ARTIST" --album "$ALBUM" --write "$TMPDIR/artist.tmp" --from "discogs;lastfm;bbcmusic;picsearch;rhapsody;singerpictures"
                 convert "$TMPDIR/artist.tmp" "$cacheartist"
-            fi
+            fi            
+
 
             if [ ! -f "$cacheartist" ];then
+                echo "Trying deezer..."
                 API_URL="https://api.deezer.com/search/artist?q=$EscapedArtist" && API_URL=${API_URL//' '/'%20'}
                 IMG_URL=$(curl -s "$API_URL" | jq -r '.data[0] | .picture_big ')
-                
                 #deezer outputs a wonky url if there's no image match, this checks for it.
                 # https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg
                 check=$(awk 'BEGIN{print gsub(ARGV[2],"",ARGV[1])}' "$IMG_URL" "//")
@@ -216,6 +217,7 @@ do
                     IMG_URL=""
                 fi
 
+                echo "Trying lastfm..."
                 if [ ! -z "$LastfmAPIKey" ] && [ -z "$IMG_URL" ];then  # deezer first, then lastfm
                     METHOD=artist.getinfo
                     API_URL="https://ws.audioscrobbler.com/2.0/?method=$METHOD&artist=$EscapedArtist&api_key=$LastfmAPIKey&format=json" && API_URL=${API_URL//' '/'%20'}
@@ -233,11 +235,16 @@ do
                     fi
                 fi
             
-            fi 
+            fi
+            
+            
+             
             if [ ! -f "$cachecover" ];then
                 ln -s "$fullpath/cover.jpg" "$cachecover"
             fi
             ARTIST=""
+            rm "$TMPDIR/artist.tmp"
+            rm "$tempartist"
         fi
     fi  
 done < "$dirlist"
