@@ -200,8 +200,11 @@ do
             
             #Adding in glyrc search for artist image...
             if [ ! -f "$cacheartist" ];then
-                glyrc artistphoto --timeout 15 --artist "$ARTIST" --album "$ALBUM" --write "$TMPDIR/artist.tmp" --from "discogs;lastfm;bbcmusic;picsearch;rhapsody;singerpictures"
-                convert "$TMPDIR/artist.tmp" "$cacheartist"
+                glyrc artistphoto --timeout 15 --artist "$ARTIST" --album "$ALBUM" --write "$TMPDIR/artist.tmp" --from "discogs;lastfm;bbcmusic;rhapsody;singerpictures"
+                if [ -f "$TMPDIR/artist.tmp" ];then
+                    convert "$TMPDIR/artist.tmp" "$cacheartist"
+                    rm "$TMPDIR/artist.jpg"
+                fi
             fi            
 
 
@@ -217,24 +220,27 @@ do
                     IMG_URL=""
                 fi
 
-                echo "Trying lastfm..."
+                
                 if [ ! -z "$LastfmAPIKey" ] && [ -z "$IMG_URL" ];then  # deezer first, then lastfm
+                    echo "Trying lastfm..."
                     METHOD=artist.getinfo
                     API_URL="https://ws.audioscrobbler.com/2.0/?method=$METHOD&artist=$EscapedArtist&api_key=$LastfmAPIKey&format=json" && API_URL=${API_URL//' '/'%20'}
                     IMG_URL=$(curl -s "$API_URL" | jq -r ' .artist | .image ' | grep -B1 -w "extralarge" | grep -v "extralarge" | awk -F '"' '{print $4}')            
-                fi           
-                tempartist=$(mktemp)
-                wget -q "$IMG_URL" -O "$tempartist"
-                bob=$(file "$tempartist" | head -1)  #It really is an image
-                sizecheck=$(wc -c "$tempartist" | awk '{print $1}')
-                # This test is because I *HATE* last.fm's default artist image
-                if [[ "$bob" == *"image data"* ]];then
-                    if [ "$sizecheck" != "4195" ];then
-                        convert "$tempartist" "$cacheartist"
-                        rm "$tempartist"
+                fi  
+                
+                if [ ! -z "$IMG_URL" ];then         
+                    tempartist=$(mktemp)
+                    wget -q "$IMG_URL" -O "$tempartist"
+                    bob=$(file "$tempartist" | head -1)  #It really is an image
+                    sizecheck=$(wc -c "$tempartist" | awk '{print $1}')
+                    # This test is because I *HATE* last.fm's default artist image
+                    if [[ "$bob" == *"image data"* ]];then
+                        if [ "$sizecheck" != "4195" ];then
+                            convert "$tempartist" "$cacheartist"
+                            rm "$tempartist"
+                        fi
                     fi
                 fi
-            
             fi
             
             
@@ -243,8 +249,12 @@ do
                 ln -s "$fullpath/cover.jpg" "$cachecover"
             fi
             ARTIST=""
-            rm "$TMPDIR/artist.tmp"
-            rm "$tempartist"
+            if [ -f "$TMPDIR/artist.tmp" ];then
+                rm "$TMPDIR/artist.tmp"
+            fi
+            if [ -f "$tempartist" ];then
+                rm "$tempartist"
+            fi
         fi
     fi  
 done < "$dirlist"
