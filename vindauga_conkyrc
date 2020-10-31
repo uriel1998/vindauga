@@ -57,7 +57,7 @@ ${alignr}${mpd_artist 45}
 ${alignr}${mpd_album 45}
 ${alignr}${mpd_title 45}
  ${mpd_bar 7,253}
- ${image /home/steven/.cache/vindauga/nowplaying.album.jpg -p 2,90 -s 256x256}
+ ${image ~/.cache/vindauga/nowplaying.album.jpg -p 2,90 -s 256x256}
 ${endif}
 
 
