@@ -6,6 +6,7 @@ Download and display album art or display embedded (or folder-based) album art u
 
 ![Output example](https://raw.githubusercontent.com/uriel1998/vindauga/master/output.gif "Example output")
 
+#change in config file to ini file and way it's put together
 
 
 ## Contents

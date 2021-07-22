@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-#!/usr/bin/env bash
 # ┐ ┬o┌┐┐┬─┐┬─┐┬ ┐┌─┐┬─┐
 # │┌┘│││││ ││─┤│ ││ ┬│─┤
 # └┘ ││└┘│─┘┘ ││─┘│─┘┘ │
@@ -11,13 +9,6 @@
 # A (rather rewritten) fork of kunst (originally by Siddharth Dushantha)
 
 
-##############################################################################
-# Use ionice if it exists
-##############################################################################
-HasIonice=$(which ionice)
-if [ -f "$HasIonice" ];then
-    "$HasIonice" -c3 -p$$
-fi
 
 tempcover=$(mktemp)
 tempartist=$(mktemp)
@@ -26,47 +17,74 @@ NoSXIV="false"
 DynamicConky="false"
 cachecover=""
 SXIVPID=""
+export XDG_CONFIG_HOME=$HOME/.config
+export XDG_CACHE_HOME=$HOME/.cache
+export XDG_DATA_HOME=$HOME/.local/share
+USER=""
+
+# Pull in plugins
+export SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+for plugin in ${SCRIPT_DIR}/plugins/*;do
+    source ${plugin}
+done
+
+
+
+# Use ionice if it exists
+HasIonice=$(which ionice)
+if [ -f "$HasIonice" ];then
+    "$HasIonice" -c3 -p$$
+fi
+
+
 ##############################################################################
-# Initialize
+# Read Ini File
 ##############################################################################
+init () {    
+    read_ini
+    set_defaults
+}
 
-init (){
+read_ini () {
+if [ -f "${CONFIGFILE}" ];then
+    echo "[info] Reading configuration"
+    while read -r line; do 
+        key=$(echo "$line" | awk -F '=' '{print $1}')
+        value=$(echo "$line" | cut -d'=' -f 2- )
+    
+        case $key in
+            musicdir) MUSICDIR="${value}";;
+            cachedir) CACHEDIR="${value}";;
+            placeholder_img) placeholder_img="${value}";;
+            placeholder_dir) placeholder_dir="${value}";;
+            display_size) display_size="${value}";;
+            XCoord) XCoord="${value}";;
+            YCoord) YCoord="${value}";;
+            ConkyFile) ConkyFile="${value}";; 
+            LastfmAPIKey) LastfmAPIKey="${value}";;
+            MPDHost) MPDHost="${value}";;
+            MPDpass) MPDPass="${value}";;
+            MPDHost2) MPDHost2="${value}";;
+            MPDpass2) MPDPass2="${value}";;
+            webcovers) webcovers="${value}";;
+            *) ;;
+        esac
+    done < "${CONFIGFILE}"
+    echo "[info] Finished reading configuration."
+}
 
-    if [ -f "$IniFile" ];then
-        readarray -t line < "$IniFile"
-        musicdir=${line[1]}
-        cachedir=${line[3]}
-        placeholder_img=${line[5]}
-        placeholder_dir=${line[7]} 
-        display_size=${line[9]} 
-        XCoord=${line[11]} 
-        YCoord=${line[13]} 
-        ConkyFile=${line[15]} 
-        LastfmAPIKey=${line[17]}
-        MPDHost=${line[19]}
-    fi
 
-    if [ -z "$MusicDir" ] || [ ! d "$MusicDir" ]; then
-        MusicDir="$HOME/music"
-    fi
-    if [ -z "$display_size" ];then
-        display_size=256
-    fi
-    if [ -z "$XCoord" ];then
-        XCoord=64
-    fi
-    if [ -z "$YCoord" ];then
-        YCoord=64
-    fi    
-    if [ -z "$cachedir" ];then
-        cachedir="$HOME/.cache/vindauga"
-    fi
-    if [ ! -d "$cachedir" ];then
-        mkdir -p "$cachedir"
-    fi
-    if [ -z "$ConkyFile" ];then
-        ConkyFile="$HOME/.conky/vindauga_conkyrc"
-    fi
+
+set_defaults (){
+        
+    if [ -z "$MusicDir" ] || [ ! d "$MusicDir" ]; then MusicDir="$HOME/music"; fi
+    if [ -z "$display_size" ];then display_size=256; fi
+    if [ -z "$XCoord" ];then XCoord=64; fi
+    if [ -z "$YCoord" ];then YCoord=64; fi
+    if [ -z "$cachedir" ];then cachedir="$HOME/.cache/vindauga" ; fi
+    if [ ! -d "$cachedir" ];then mkdir -p "$cachedir"; fi
+    if [ -z "$ConkyFile" ];then ConkyFile="$HOME/.conky/vindauga_conkyrc"; fi
+    
     # If MPDHost isn't defined, check for env variable, and default to localhost
     if [ -z "$MPDHost" ];then
         if [ ! -z "$MPD_HOST" ];then
@@ -386,21 +404,21 @@ main() {
 }
 
 #default config file
-IniFile="$HOME/.config/vindauga.rc"
+CONFIGFILE="$HOME/.config/vindauga.ini"
 
 while [ $# -gt 0 ]; do
 option="$1"
     case $option
     in
     -i) shift
-    IniFile="$1"
+    CONFIGFILE="$1"
     shift;;
     -c) RunOnce="true"
     shift ;;   
     -h) display_help
     exit
     shift ;;         
-    -t) TempFile="true"
+    -t) TEMPFILE="true"
     shift ;;  
     -z) DynamicConky="true"
     shift ;;      
