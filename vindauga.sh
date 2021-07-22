@@ -202,6 +202,18 @@ update_artist() {
 ##############################################################################
 
 update_cover() {
+#mpc -f "%album%"
+#mpc -f "%albumartist%"
+#mpc -f "%artist%"
+#mpc -f "%title%"
+#mpc -f "%albumartist%\n%album%\n%artist%"
+# mpc search album "$" albumartist "$"
+# else 
+# mpc search album "$" artist "$"
+
+# sacad -d "artist" "album" 512 /out/path
+# mpc search album "$" albumartist "$"
+# else 
 
     IFS=$'\t' mpd_array=( $(mpc --host "$MPDHost" --format "\t%artist%\t%album%\t%file%\t") );
     isPlaying=$(echo "${mpd_array[3]}" | awk -F ']' '{print $1}' | grep -e '^\[p' -c)
