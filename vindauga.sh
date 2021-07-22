@@ -23,6 +23,8 @@ export XDG_DATA_HOME=$HOME/.local/share
 USER=""
 # Default config file, can be overriden in command line
 CONFIGFILE="$HOME/.config/vindauga.ini"
+# This is the global / active variable
+MPDHost=""
 
 # Pull in plugins
 export SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -48,13 +50,11 @@ init () {
 }
 
 read_ini () {
-    
     if [ -f "${CONFIGFILE}" ];then
         echo "[info] Reading configuration"
         while read -r line; do 
             key=$(echo "$line" | awk -F '=' '{print $1}')
             value=$(echo "$line" | cut -d'=' -f 2- )
-        
             case $key in
                 musicdir) MUSICDIR="${value}";;
                 cachedir) CACHEDIR="${value}";;
@@ -65,10 +65,8 @@ read_ini () {
                 YCoord) YCoord="${value}";;
                 ConkyFile) ConkyFile="${value}";; 
                 LastfmAPIKey) LastfmAPIKey="${value}";;
-                MPDHost) MPDHost="${value}";;
-                MPDpass) MPDPass="${value}";;
+                MPDHost1) MPDHost1="${value}";;
                 MPDHost2) MPDHost2="${value}";;
-                MPDpass2) MPDPass2="${value}";;
                 webcovers) webcovers="${value}";;
                 *) ;;
             esac
@@ -76,8 +74,6 @@ read_ini () {
         echo "[info] Finished reading configuration."
     fi
 }
-
-
 
 set_defaults (){
         
@@ -90,11 +86,11 @@ set_defaults (){
     if [ -z "$ConkyFile" ];then ConkyFile="$HOME/.conky/vindauga_conkyrc"; fi
     
     # If MPDHost isn't defined, check for env variable, and default to localhost
-    if [ -z "$MPDHost" ];then
+    if [ -z "$MPDHost1" ];then
         if [ ! -z "$MPD_HOST" ];then
-            MPDHost="$MPD_HOST"
+            MPDHost1="$MPD_HOST"
         else
-            MPDHost="localhost"
+            MPDHost1="localhost"
         fi
     fi
 
@@ -127,8 +123,6 @@ EOF
 
 }
 
-
-
 display_help() {
     ##############################################################################
     # Show help on cli
@@ -149,10 +143,15 @@ display_help() {
     echo "   -t     write mpc output to tempfile for remote mpc and conky"
 }
 
+playtester () {
+    IFS=$'\t' mpd_array=( $(mpc --host "$1" --format "%title%") );
+    local playtest=$(echo "${mpd_array[4]}" | awk -F ']' '{print $1}' | grep -e '^\[p' -c)
+    printf "%s" "${playtest}"
+}
+
 ##############################################################################
 # Big updating artist function
 ##############################################################################
-
 update_artist() {
     
     cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
@@ -167,7 +166,7 @@ update_artist() {
         if [ -z "$IMG_URL" ];then    
             API_URL="https://api.deezer.com/search/artist?q=$EscapedArtist" && API_URL=${API_URL//' '/'%20'}
             IMG_URL=$(curl -s "$API_URL" | jq -r '.data[0] | .picture_big ')
-        
+        forest.ogg
             #deezer outputs a wonky url if there's no image match, this checks for it.
             # https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg
             check=$(awk 'BEGIN{print gsub(ARGV[2],"",ARGV[1])}' "$IMG_URL" "//")
@@ -200,23 +199,27 @@ update_artist() {
 ##############################################################################
 # Big updating cover function
 ##############################################################################
-
 update_cover() {
+    
 #mpc -f "%album%"
 #mpc -f "%albumartist%"
 #mpc -f "%artist%"
 #mpc -f "%title%"
-#mpc -f "%albumartist%\n%album%\n%artist%"
+#mpc -f "%albumartist%\n%album%\n%artist%\n%file%"
 # mpc search album "$" albumartist "$"
 # else 
 # mpc search album "$" artist "$"
-
 # sacad -d "artist" "album" 512 /out/path
 # mpc search album "$" albumartist "$"
 # else 
+    # albumartist is last because it's not always out of the box, but it should
+    # be the preferred usage
+    IFS=$'\t' mpd_array=( $(mpc --host "$MPDHost" --format "\t%artist%\t%album%\t%file%\t%albumartist%") );
+    isPlaying=$(echo "${mpd_array[4]}" | awk -F ']' '{print $1}' | grep -e '^\[p' -c)
 
-    IFS=$'\t' mpd_array=( $(mpc --host "$MPDHost" --format "\t%artist%\t%album%\t%file%\t") );
-    isPlaying=$(echo "${mpd_array[3]}" | awk -F ']' '{print $1}' | grep -e '^\[p' -c)
+wsfdsdf
+#TODO - set up gathering of mpd_array outside of these functions, then pass the 
+#artist (or albumartist) into the function
 
     if [ "$isPlaying" -gt 0 ];then
         rm -f "$cachedir"/nowplaying.album.jpg
@@ -227,10 +230,11 @@ update_cover() {
         ##########################################################################
         EscapedArtist=$(echo "${mpd_array[0]}" | sed -e 's/[/()&]//g')
         EscapedAlbum=$(echo "${mpd_array[1]}" | sed -e 's/[/()&]//g')
+        EscapedAlbumArtist=$(echo "${mpd_array[3]}" | sed -e 's/[/()&]//g')
         cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
+        cacheaartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedAlbumArtist")
         cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
 
-    
         update_artist
 
         if [[ ! -f "$cachecover" ]] ;then
@@ -296,7 +300,7 @@ update_cover() {
             # Copy our found file to the cache
             ##########################################################################
             if [[ ! -f "$cachecover" ]] ; then
-                if [ -f "$CoverImage" ];then
+                if [ -f "$CoverImageMPDHost2" ];then
                 
                     # use convert instead of copy here so it doesn't matter if it
                     # downloaded/found a png or jpg or jpeg
@@ -359,8 +363,27 @@ main() {
 	# Flag to run some commands only once in the loop
 	FIRST_RUN=true
 
-	while true; do
-            
+    # If there is a second MPD config, check player 1
+    # If there is not a second MPD config, use player 1 as player
+    # If player 1 is running, use that.
+    # If player 1 is not, see if player 2 is up.
+
+	while true; do 
+        if [ ! -z "${MPDHost2}" ];then
+            local tempstatus=$(playtester "${MPDHost1}")
+            if [ ${tempstatus} -gt 0 ];then
+                MPDHost="${MPDHost1}"
+            else
+                tempstatus=$(playtester "${MPDHost2}")
+                if [ ${tempstatus} -gt 0 ];then
+                    MPDHost="${MPDHost2}"
+                fi
+            fi
+        else
+            MPDHost="${MPDHost1}"
+        fi
+                
+
 		update_cover
         if [ ! -f "$cachedir"/nowplaying.album.jpg ];then
             convert "$placeholder_img" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
