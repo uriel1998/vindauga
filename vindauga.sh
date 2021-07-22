@@ -21,6 +21,8 @@ export XDG_CONFIG_HOME=$HOME/.config
 export XDG_CACHE_HOME=$HOME/.cache
 export XDG_DATA_HOME=$HOME/.local/share
 USER=""
+# Default config file, can be overriden in command line
+CONFIGFILE="$HOME/.config/vindauga.ini"
 
 # Pull in plugins
 export SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -46,31 +48,33 @@ init () {
 }
 
 read_ini () {
-if [ -f "${CONFIGFILE}" ];then
-    echo "[info] Reading configuration"
-    while read -r line; do 
-        key=$(echo "$line" | awk -F '=' '{print $1}')
-        value=$(echo "$line" | cut -d'=' -f 2- )
     
-        case $key in
-            musicdir) MUSICDIR="${value}";;
-            cachedir) CACHEDIR="${value}";;
-            placeholder_img) placeholder_img="${value}";;
-            placeholder_dir) placeholder_dir="${value}";;
-            display_size) display_size="${value}";;
-            XCoord) XCoord="${value}";;
-            YCoord) YCoord="${value}";;
-            ConkyFile) ConkyFile="${value}";; 
-            LastfmAPIKey) LastfmAPIKey="${value}";;
-            MPDHost) MPDHost="${value}";;
-            MPDpass) MPDPass="${value}";;
-            MPDHost2) MPDHost2="${value}";;
-            MPDpass2) MPDPass2="${value}";;
-            webcovers) webcovers="${value}";;
-            *) ;;
-        esac
-    done < "${CONFIGFILE}"
-    echo "[info] Finished reading configuration."
+    if [ -f "${CONFIGFILE}" ];then
+        echo "[info] Reading configuration"
+        while read -r line; do 
+            key=$(echo "$line" | awk -F '=' '{print $1}')
+            value=$(echo "$line" | cut -d'=' -f 2- )
+        
+            case $key in
+                musicdir) MUSICDIR="${value}";;
+                cachedir) CACHEDIR="${value}";;
+                placeholder_img) placeholder_img="${value}";;
+                placeholder_dir) placeholder_dir="${value}";;
+                display_size) display_size="${value}";;
+                XCoord) XCoord="${value}";;
+                YCoord) YCoord="${value}";;
+                ConkyFile) ConkyFile="${value}";; 
+                LastfmAPIKey) LastfmAPIKey="${value}";;
+                MPDHost) MPDHost="${value}";;
+                MPDpass) MPDPass="${value}";;
+                MPDHost2) MPDHost2="${value}";;
+                MPDpass2) MPDPass2="${value}";;
+                webcovers) webcovers="${value}";;
+                *) ;;
+            esac
+        done < "${CONFIGFILE}"
+        echo "[info] Finished reading configuration."
+    fi
 }
 
 
@@ -123,11 +127,12 @@ EOF
 
 }
 
-##############################################################################
-# Show help on cli
-##############################################################################
+
 
 display_help() {
+    ##############################################################################
+    # Show help on cli
+    ##############################################################################
 	echo "usage: vindauga.sh [-h][-c][-y]"
 	echo " "
 	echo "┐ ┬o┌┐┐┬─┐┬─┐┬ ┐┌─┐┬─┐"
@@ -311,8 +316,6 @@ update_cover() {
 }
 
 
-
-
 pre_exit() {
 	# Get the proccess ID of vindauga and kill it.
     # We are dumping the output of kill to /dev/null
@@ -345,14 +348,14 @@ main() {
 	FIRST_RUN=true
 
 	while true; do
-        
+            
 		update_cover
         if [ ! -f "$cachedir"/nowplaying.album.jpg ];then
             convert "$placeholder_img" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
         fi
         
-        if [ "$NoSXIV" = "false" ];then
-            
+        if [ "$NoSXIV" = "false" ];then            
+            # USE SXIV
             # Resetting SXIVPID if it tries to scroll *just* as we change 
             # covers. You will want to set a fixed position in your rc.xml
             if [ ! -z "$SXIVPID" ];then
@@ -368,14 +371,13 @@ main() {
                 geometrystring=$(printf "%sx%s+%s+%s" "$display_size" "$display_size" "$XCoord" "$YCoord")
                 sxiv -g "$geometrystring" -b "$cachedir"/nowplaying.album.jpg -S 2 -N "vindauga" &
                 echo $! >/tmp/sxiv.pid
+                # Save the process ID so that we can kill
+                # sxiv when the user exits the script
                 SXIVPID=$(echo $!)
 			fi
-			# Save the process ID so that we can kill
-			# sxiv when the user exits the script
-
         else
             if [ "$DynamicConky" = "true" ]; then
-
+                # USE CONKY
                 # Resetting Conky if need be
                 if [ ! -z "$VCONKYPID" ];then
                     if ! ps -p "$VCONKYPID" > /dev/null 
@@ -388,7 +390,6 @@ main() {
                     conky -c "$ConkyFile" &
                     echo $! >/tmp/vconky.pid
                     VCONKYPID=$(echo $!)
-
                 fi
             fi
 		fi
@@ -396,16 +397,13 @@ main() {
         if [ "$RunOnce" = "true" ];then
             break
         fi
-#TODO - if writing from remote, we can't update mpd so have to manually update
 		# Waiting for an event from mpd; play/pause/next/previous
 		# this is lets vindauga use less CPU :)
 		mpc --host "$MPDHost" idle &> /dev/null
    done
 }
 
-#default config file
-CONFIGFILE="$HOME/.config/vindauga.ini"
-
+# Command Line Options
 while [ $# -gt 0 ]; do
 option="$1"
     case $option
