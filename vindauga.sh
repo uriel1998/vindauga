@@ -67,6 +67,7 @@ read_ini () {
                 MPDHost1) MPDHost1="${value}";;
                 MPDHost2) MPDHost2="${value}";;
                 webcovers) webcovers="${value}";;
+                interval) interval="${value}";;
                 *) ;;
             esac
         done < "${CONFIGFILE}"
@@ -80,6 +81,7 @@ set_defaults (){
     if [ -z "$display_size" ];then display_size=256; fi
     if [ -z "$XCoord" ];then XCoord=64; fi
     if [ -z "$YCoord" ];then YCoord=64; fi
+    if [ -z "$interval" ];then interval=1; fi    
     if [ -z "$cachedir" ];then cachedir="$HOME/.cache/vindauga" ; fi
     if [ ! -d "$cachedir" ];then mkdir -p "$cachedir"; fi
     if [ -z "$ConkyFile" ];then ConkyFile="$HOME/.conky/vindauga_conkyrc"; fi
@@ -149,15 +151,17 @@ playtester () {
 
 mpd_infogetter () {
     # Using the global variable here
-    IFS=$'\t' mpd_array=( $(mpc --host "$MPDHost" --format "\t%artist%\t%album%\t%file%\t%albumartist%") );
-    Artist==$(echo "${mpd_array[0]}" )
+    IFS=$'\t' mpd_array=( $(mpc --host "$MPDHost" --format "\t%artist%\t%album%\t%file%\t%albumartist%\t%title%\t") );
+    Artist=$(echo "${mpd_array[0]}" | sed -e 's/^[ \t]*//')
     EscapedArtist=$(echo "${mpd_array[0]}" | sed -e 's/[/()&]//g')
-    Album=$(echo "${mpd_array[1]}")
+    Album=$(echo "${mpd_array[1]}" | sed -e 's/^[ \t]*//' )
     EscapedAlbum=$(echo "${mpd_array[1]}" | sed -e 's/[/()&]//g')
-    SongFile=$(echo "$MusicDir/${mpd_array[2]}")
+    SongFile=$(echo "$MusicDir/${mpd_array[2]}" | sed -e 's/^[ \t]*//')
     AlbumDir=$(dirname "$SongFile")
-    AlbumArtist=$(echo "${mpd_array[3]}" )
+    AlbumArtist=$(echo "${mpd_array[3]}" | sed -e 's/^[ \t]*//' )
     EscapedAlbumArtist=$(echo "${mpd_array[3]}" | sed -e 's/[/()&]//g')
+    Title=$(echo "${mpd_array[4]}" | sed -e 's/^[ \t]*//' )
+    StatusLine=$(echo "${mpd_array[5]}" | tail -2 | head -1 | awk '{print $1" "$3 $4}')
 }
 
 ##############################################################################
@@ -222,7 +226,7 @@ update_cover() {
         cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedAlbumArtist" "$EscapedAlbum")
     fi
 
-
+#TODO - UPDATE ARTIST BITS
     #update_artist
     
     if [[ ! -f "$cachecover" ]] ;then
@@ -384,8 +388,14 @@ main() {
         else
             MPDHost="${MPDHost1}"
         fi
-                
+        
+        PercentDone=$(echo "${StatusLine}" | cut -d '(' -f 2- | cut -d '%' -f 1)
         mpd_infogetter
+        printf "  %s\n" "${Artist}" > ${cachedir}/nowplaying.txt
+        printf "  %s\n" "${Album}" >> ${cachedir}/nowplaying.txt
+        printf "  %s\n" "${Title}" >> ${cachedir}/nowplaying.txt
+        printf "  %s\n" "${StatusLine}" >> ${cachedir}/nowplaying.txt
+        printf "%s\n" "${PercentDone}" > ${cachedir}/percent.txt
 		update_cover
         
         if [ ! -f "$cachedir"/nowplaying.album.jpg ];then
@@ -437,7 +447,14 @@ main() {
         fi
 		# Waiting for an event from mpd; play/pause/next/previous
 		# this is lets vindauga use less CPU :)
-		mpc --host "$MPDHost" idle &> /dev/null
+        # How do I have this swap back? I'm not sure. I may have to do a 
+        #looping check instead  UUUGH
+        sleep ${interval}
+#        while true; do
+ #        if [[ "${useline}" == 'http'* ]];then
+  #          mpc --host "$MPDHost1" idle &> /dev/null || break
+   #         mpc --host "$MPDHost2" idle &> /dev/null || break
+    #    done
    done
 }
 
