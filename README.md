@@ -8,6 +8,7 @@ Download and display album art or display embedded (or folder-based) album art u
 
 #change in config file to ini file and way it's put together
 # always define mpdhost1
+# sacad should be in $PATH
 
 
 ## Contents

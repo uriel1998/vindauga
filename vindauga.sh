@@ -27,11 +27,10 @@ CONFIGFILE="$HOME/.config/vindauga.ini"
 MPDHost=""
 
 # Pull in plugins
-export SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-for plugin in ${SCRIPT_DIR}/plugins/*;do
-    source ${plugin}
-done
-
+#export SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+#for plugin in ${SCRIPT_DIR}/plugins/*;do
+#    source ${plugin}
+#done
 
 
 # Use ionice if it exists
@@ -55,7 +54,7 @@ read_ini () {
         while read -r line; do 
             key=$(echo "$line" | awk -F '=' '{print $1}')
             value=$(echo "$line" | cut -d'=' -f 2- )
-            case $key in
+           case $key in
                 musicdir) MUSICDIR="${value}";;
                 cachedir) CACHEDIR="${value}";;
                 placeholder_img) placeholder_img="${value}";;
@@ -144,9 +143,21 @@ display_help() {
 }
 
 playtester () {
-    IFS=$'\t' mpd_array=( $(mpc --host "$1" --format "%title%") );
-    local playtest=$(echo "${mpd_array[4]}" | awk -F ']' '{print $1}' | grep -e '^\[p' -c)
+    local playtest=$(mpc --host "$1" --format "" | head -2 | tail -1 | awk -F ']' '{print $1}' | grep -e '^\[p' -c )
     printf "%s" "${playtest}"
+}
+
+mpd_infogetter () {
+    # Using the global variable here
+    IFS=$'\t' mpd_array=( $(mpc --host "$MPDHost" --format "\t%artist%\t%album%\t%file%\t%albumartist%") );
+    Artist==$(echo "${mpd_array[0]}" )
+    EscapedArtist=$(echo "${mpd_array[0]}" | sed -e 's/[/()&]//g')
+    Album=$(echo "${mpd_array[1]}")
+    EscapedAlbum=$(echo "${mpd_array[1]}" | sed -e 's/[/()&]//g')
+    SongFile=$(echo "$MusicDir/${mpd_array[2]}")
+    AlbumDir=$(dirname "$SongFile")
+    AlbumArtist=$(echo "${mpd_array[3]}" )
+    EscapedAlbumArtist=$(echo "${mpd_array[3]}" | sed -e 's/[/()&]//g')
 }
 
 ##############################################################################
@@ -154,8 +165,6 @@ playtester () {
 ##############################################################################
 update_artist() {
     
-    cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
-    cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")    
 
     ######################################################################
     #  Artist image
@@ -200,131 +209,124 @@ update_artist() {
 # Big updating cover function
 ##############################################################################
 update_cover() {
+
+    ##########################################################################
+    # Test for existing cache
+    ##########################################################################
+    cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
+    cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
+
+    # Preferentially using album artist if available. 
+    if [ ! -z ${EscapedAlbumArtist} ];then
+        cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedAlbumArtist")
+        cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedAlbumArtist" "$EscapedAlbum")
+    fi
+
+
+    #update_artist
     
-#mpc -f "%album%"
-#mpc -f "%albumartist%"
-#mpc -f "%artist%"
-#mpc -f "%title%"
-#mpc -f "%albumartist%\n%album%\n%artist%\n%file%"
-# mpc search album "$" albumartist "$"
-# else 
-# mpc search album "$" artist "$"
-# sacad -d "artist" "album" 512 /out/path
-# mpc search album "$" albumartist "$"
-# else 
-    # albumartist is last because it's not always out of the box, but it should
-    # be the preferred usage
-    IFS=$'\t' mpd_array=( $(mpc --host "$MPDHost" --format "\t%artist%\t%album%\t%file%\t%albumartist%") );
-    isPlaying=$(echo "${mpd_array[4]}" | awk -F ']' '{print $1}' | grep -e '^\[p' -c)
+    if [[ ! -f "$cachecover" ]] ;then
 
-wsfdsdf
-#TODO - set up gathering of mpd_array outside of these functions, then pass the 
-#artist (or albumartist) into the function
-
-    if [ "$isPlaying" -gt 0 ];then
-        rm -f "$cachedir"/nowplaying.album.jpg
-        SongFile=$(echo "$MusicDir/${mpd_array[2]}")
-        AlbumDir=$(dirname "$SongFile")
         ##########################################################################
-        # Test for existing cache
+        # Get local cover art first
         ##########################################################################
-        EscapedArtist=$(echo "${mpd_array[0]}" | sed -e 's/[/()&]//g')
-        EscapedAlbum=$(echo "${mpd_array[1]}" | sed -e 's/[/()&]//g')
-        EscapedAlbumArtist=$(echo "${mpd_array[3]}" | sed -e 's/[/()&]//g')
-        cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
-        cacheaartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedAlbumArtist")
-        cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
-
-        update_artist
-
-        if [[ ! -f "$cachecover" ]] ;then
-
-            ##########################################################################
-            # Get local cover art first
-            ##########################################################################
-            CoverImage=$(echo "$AlbumDir/folder.jpg")
+        CoverImage=$(echo "$AlbumDir/folder.jpg")
+        if [ ! -f "$CoverImage" ];then
+            CoverImage=$(echo "$AlbumDir/cover.jpg")
             if [ ! -f "$CoverImage" ];then
-                CoverImage=$(echo "$AlbumDir/cover.jpg")
+                CoverImage=$(echo "$AlbumDir/folder.png")
                 if [ ! -f "$CoverImage" ];then
-                    CoverImage=$(echo "$AlbumDir/folder.png")
-                    if [ ! -f "$CoverImage" ];then
-                        CoverImage=$(echo "$AlbumDir/cover.png")
-                        if [ ! -f "$CoverImage" ]; then
-                            TempString=$(ls "$AlbumDir" | egrep "jpeg|jpg|png|gif" | head -n 1)
-                            CoverImage=$(echo "$AlbumDir/$TempString")
-                        fi
+                    CoverImage=$(echo "$AlbumDir/cover.png")
+                    if [ ! -f "$CoverImage" ]; then
+                        TempString=$(ls "$AlbumDir" | egrep "jpeg|jpg|png|gif" | head -n 1)
+                        CoverImage=$(echo "$AlbumDir/$TempString")
                     fi
                 fi
             fi
-            ##########################################################################
-            # Attempt to extract cover art from MP3 if not in musicdir
-            ##########################################################################
+        fi
+        ##########################################################################
+        # Attempt to extract cover art from MP3 if not in musicdir
+        # (no cache cover, no local art in directory
+        ##########################################################################
+        
+        if [ ! -f "$CoverImage" ];then
+            ffmpeg -i "$SongFile" $tempcover -y &> /dev/null
+            STATUS=$?
+            # Check if the file has a embbeded album art
+            if [ $STATUS -eq 0 ];then
+                CoverImage=$(echo "$tempcover")
+            fi
+        fi
+                
+        ##########################################################################
+        # Attempt to get coverart from CoverArt Archive or Deezer
+        ##########################################################################
+        MBID=""
+        IMG_URL=""
+        API_URL=""   
+        
+        if [ ! -f "$CoverImage" ];then
+            MBID=$(ffmpeg -i "$SongFile" 2>&1 | grep "MusicBrainz Album Id:" | awk -F ': ' '{print $2}')
+            if [ "$MBID" = '' ] || [ "$MBID" = 'null' ];then
+                API_URL="http://api.deezer.com/search/autocomplete?q=${mpd_array[0]}-${mpd_array[1]}" && API_URL=${API_URL//' '/'%20'}
+                IMG_URL=$(curl -s "$API_URL" | jq -r '.playlists.data[0] | .picture_big')
+            else
+                API_URL="http://coverartarchive.org/release/$MBID/front"
+                IMG_URL=$(curl "$API_URL" | awk -F ': ' '{print $2}')
+            fi
             
-            if [ ! -f "$CoverImage" ];then
-                ffmpeg -i "$SongFile" $tempcover -y &> /dev/null
-                STATUS=$?
-                # Check if the file has a embbeded album art
-                if [ $STATUS -eq 0 ];then
+            if [ "$IMG_URL" = '' ] || [ "$IMG_URL" = 'null' ];then
+                echo "Not on CoverArt Archive or Deezer"
+            else
+                # I don't know why curl hates me here.
+                #curl -o "$tempcover" "$IMG_URL"
+                wget -q "$IMG_URL" -O "$tempcover"
+                if [ -f "$tempcover" ];then
                     CoverImage=$(echo "$tempcover")
                 fi
             fi
-            ##########################################################################
-            # Attempt to get coverart from CoverArt Archive or Deezer
-            ##########################################################################
-            MBID=""
-            IMG_URL=""
-            API_URL=""   
-            
-            if [ ! -f "$CoverImage" ];then
-                MBID=$(ffmpeg -i "$SongFile" 2>&1 | grep "MusicBrainz Album Id:" | awk -F ': ' '{print $2}')
-                if [ "$MBID" = '' ] || [ "$MBID" = 'null' ];then
-                    API_URL="http://api.deezer.com/search/autocomplete?q=${mpd_array[0]}-${mpd_array[1]}" && API_URL=${API_URL//' '/'%20'}
-                    IMG_URL=$(curl -s "$API_URL" | jq -r '.playlists.data[0] | .picture_big')
-                else
-                    API_URL="http://coverartarchive.org/release/$MBID/front"
-                    IMG_URL=$(curl "$API_URL" | awk -F ': ' '{print $2}')
-                fi
-                
-                if [ "$IMG_URL" = '' ] || [ "$IMG_URL" = 'null' ];then
-                    echo "Not on CoverArt Archive or Deezer"
-                else
-                    # I don't know why curl hates me here.
-                    #curl -o "$tempcover" "$IMG_URL"
-                    wget -q "$IMG_URL" -O "$tempcover"
-                    if [ -f "$tempcover" ];then
-                        CoverImage=$(echo "$tempcover")
-                    fi
-                fi
-            fi
-            ##########################################################################
-            # Copy our found file to the cache
-            ##########################################################################
-            if [[ ! -f "$cachecover" ]] ; then
-                if [ -f "$CoverImageMPDHost2" ];then
-                
-                    # use convert instead of copy here so it doesn't matter if it
-                    # downloaded/found a png or jpg or jpeg
-                    convert "$CoverImage" "$cachecover"
-                    convert "$CoverImage"  -resize "$display_size" "$cachedir"/nowplaying.album.jpg
-                fi
-            fi   
-        else
-            convert "$cachecover" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
         fi
-        if [ ! -f "$cachedir"/nowplaying.album.jpg ];then
-            if [ ! -z "$placeholder_dir" ];then
-                TempString=$(ls "$placeholder_dir" | egrep "jpeg|jpg|png|gif" | shuf | head -n 1)
-                CoverImage=$(echo "$placeholder_dir/$TempString")
-                convert "$CoverImage" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
-            else
-                phi=$(which imgholder.sh)
-                if [ -f "$phi" ];then
-                    bob=$($phi -p picsum -o "$tempcover" )
-                    if [ -f "$tempcover" ];then
-                        convert "$tempcover" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
-                    else
-                        convert "$tempcover" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
-                    fi
+        
+        ##########################################################################
+        # Attempt to find cover art via sacad if it's in $PATH
+        # (no cache cover, no local art in directory
+        ##########################################################################
+        if [ ! -f "$CoverImage" ];then
+            local sacad_bin=$(which sacad)
+            if [ -f "${sacad_bin}" ];then 
+                "${sacad_bin}" -d "${Artist}" "${Album}" 512 "${tempcover}"
+                CoverImage=$(echo "$tempcover")
+            fi
+        fi
+        
+        ##########################################################################
+        # Copy our found file to the cache
+        ##########################################################################
+        if [[ ! -f "$cachecover" ]] ; then
+            if [ -f "$CoverImage" ];then
+            
+                # use convert instead of copy here so it doesn't matter if it
+                # downloaded/found a png or jpg or jpeg
+                convert "$CoverImage" "$cachecover"
+                convert "$CoverImage"  -resize "$display_size" "$cachedir"/nowplaying.album.jpg
+            fi
+        fi   
+    else
+        convert "$cachecover" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
+    fi
+    if [ ! -f "$cachedir"/nowplaying.album.jpg ];then
+        if [ ! -z "$placeholder_dir" ];then
+            TempString=$(ls "$placeholder_dir" | egrep "jpeg|jpg|png|gif" | shuf | head -n 1)
+            CoverImage=$(echo "$placeholder_dir/$TempString")
+            convert "$CoverImage" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
+        else
+            phi=$(which imgholder.sh)
+            if [ -f "$phi" ];then
+                bob=$($phi -p picsum -o "$tempcover" )
+                if [ -f "$tempcover" ];then
+                    convert "$tempcover" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
+                else
+                    convert "$tempcover" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
                 fi
             fi
         fi
@@ -383,8 +385,9 @@ main() {
             MPDHost="${MPDHost1}"
         fi
                 
-
+        mpd_infogetter
 		update_cover
+        
         if [ ! -f "$cachedir"/nowplaying.album.jpg ];then
             convert "$placeholder_img" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
         fi
