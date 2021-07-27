@@ -68,6 +68,7 @@ read_ini () {
                 MPDHost2) MPDHost2="${value}";;
                 webcovers) webcovers="${value}";;
                 interval) interval="${value}";;
+                conkybin) conkybin="${value}";;
                 *) ;;
             esac
         done < "${CONFIGFILE}"
@@ -85,6 +86,7 @@ set_defaults (){
     if [ -z "$cachedir" ];then cachedir="$HOME/.cache/vindauga" ; fi
     if [ ! -d "$cachedir" ];then mkdir -p "$cachedir"; fi
     if [ -z "$ConkyFile" ];then ConkyFile="$HOME/.conky/vindauga_conkyrc"; fi
+    if [ -z "$conkybin" ];then conkybin=$(which conky); fi
     
     # If MPDHost isn't defined, check for env variable, and default to localhost
     if [ -z "$MPDHost1" ];then
