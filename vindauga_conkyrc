@@ -1,12 +1,12 @@
 # — Window specifications — #
 own_window yes
 own_window_class vindauga_conky
-own_window_transparent no
+own_window_transparent yes
 own_window_type override
 own_window_hints undecorated,sticky,skip_taskbar,skip_pager 
 double_buffer yes
 no_buffers yes
-update_interval 4
+update_interval 1
 total_run_times 0
 net_avg_samples 2
 
@@ -19,8 +19,9 @@ imlib_cache_size 0
 border_inner_margin 10
 border_outer_margin 0
 
-minimum_size 258 350
-maximum_size 258 350
+minimum_size 260 360
+maximum_size 260 360
+
 
 alignment tr
 gap_x 30
@@ -28,7 +29,7 @@ gap_y 30
 
 
 # — Graphics settings — #
-draw_shades no
+draw_shades yes
 draw_outline no
 draw_borders no
 draw_graph_borders no
@@ -40,6 +41,8 @@ xftalpha 0.8
 
 default_color FFFFFF
 default_gauge_size 47 25
+default_graph_size 47 25
+default_bar_size 253 5
 
 uppercase no
 use_spacer right
@@ -47,17 +50,17 @@ use_spacer right
 color0 white
 color1 orange
 color2 green
-
-
-# should be reading from tempfile
+mpd_password 
+mpd_host 
 
 TEXT
-${if_mpd_playing}${alignr}${mpd_elapsed}/${mpd_length}MPD:${mpd_status}
+${alignr}${image /home/steven/.conky/vindauga_bg.png -p -1,-1 -s 280x385}${if_mpd_playing}${alignr}${mpd_elapsed}/${mpd_length}   MPD:${mpd_status}
 ${alignr}${mpd_artist 45}
 ${alignr}${mpd_album 45}
 ${alignr}${mpd_title 45}
- ${mpd_bar 7,253}
- ${image /home/steven/.cache/vindauga/nowplaying.album.jpg -p 2,90 -s 256x256}
+${mpd_bar 7,253}
+${image /home/steven/.cache/vindauga/nowplaying.album.jpg -p 12,110 -s 256x256}
 ${endif}
+
 
 

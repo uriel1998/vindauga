@@ -395,11 +395,11 @@ main() {
         mpd_infogetter
         
 ############## THIS NEEDS TO BE A MODULE        
-        printf "  %s\n" "${Artist}" > ${cachedir}/nowplaying.txt
-        printf "  %s\n" "${Album}" >> ${cachedir}/nowplaying.txt
-        printf "  %s\n" "${Title}" >> ${cachedir}/nowplaying.txt
-        printf "  %s\n" "${StatusLine}" >> ${cachedir}/nowplaying.txt
-        printf "%s\n" "${PercentDone}" > ${cachedir}/percent.txt
+#        printf "  %s\n" "${Artist}" > ${cachedir}/nowplaying.txt
+#        printf "  %s\n" "${Album}" >> ${cachedir}/nowplaying.txt
+#        printf "  %s\n" "${Title}" >> ${cachedir}/nowplaying.txt
+#        printf "  %s\n" "${StatusLine}" >> ${cachedir}/nowplaying.txt
+#        printf "%s\n" "${PercentDone}" > ${cachedir}/percent.txt
 ######################################################################
         
 		update_cover
@@ -446,13 +446,13 @@ main() {
                 if [ $FIRST_RUN == true ]; then
                     FIRST_RUN=false 
                     # Needed to set to see if reset needed of conky
-                    local conkympdhost=$(echo "${MPDHost}" | awk -F '@' '{print $2}')
-                    local conkympdpass=$(echo "${MPDHost}" | awk -F '@' '{print $1}')
+                    conkympdhost=$(echo "${MPDHost}" | awk -F '@' '{print $2}')
+                    conkympdpass=$(echo "${MPDHost}" | awk -F '@' '{print $1}')
                     # Needed for conky to use the right host stuff for MPD
-                    sed -o "s/mpd_host $PARTITION_COLUMN.*/${conkympdhost}/" "${ConkyFile}"
-                    sed "s/mpd_pass $PARTITION_COLUMN.*/${conkympdpass}/" "${ConkyFile}"
+                    sed -i "s/^mpd_host.*/mpd_host ${conkympdhost}/" "${ConkyFile}"
+                    sed -i "s/^mpd_password.*/mpd_password ${conkympdpass}/" "${ConkyFile}"
                     export MPD_HOST=${MPDHost}
-                    ${conkybin} -c "$ConkyFile" &
+                    ${conkybin} -c "$ConkyFile" & 
                     echo $! >/tmp/vconky.pid
                     VCONKYPID=$(echo $!)
                 fi
@@ -467,8 +467,6 @@ main() {
         # How do I have this swap back? I'm not sure. I may have to do a 
         #looping check instead  UUUGH
         CHANGES=""
-        echo "$MPDHost1"
-        echo "$MPDHost2"
         mpc --host "$MPDHost1" idle & &> /dev/null 
         MPC_PID1="$!"
         mpc --host "$MPDHost2" idle & &> /dev/null 
@@ -480,16 +478,13 @@ main() {
                     continue
                 else
                     CHANGES="TRUE"
-                    echo "TWO CHANGED"
                 fi
             else
                 CHANGES="TRUE"
-                echo "ONE CHANGED"
             fi
         done
         kill -9 "$MPC_PID1" &> /dev/null
         kill -9 "$MPC_PID2" &> /dev/null
-        echo "BONG#######################################################"
    done
 }
 
