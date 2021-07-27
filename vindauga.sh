@@ -393,11 +393,15 @@ main() {
         
         PercentDone=$(echo "${StatusLine}" | cut -d '(' -f 2- | cut -d '%' -f 1)
         mpd_infogetter
+        
+############## THIS NEEDS TO BE A MODULE        
         printf "  %s\n" "${Artist}" > ${cachedir}/nowplaying.txt
         printf "  %s\n" "${Album}" >> ${cachedir}/nowplaying.txt
         printf "  %s\n" "${Title}" >> ${cachedir}/nowplaying.txt
         printf "  %s\n" "${StatusLine}" >> ${cachedir}/nowplaying.txt
         printf "%s\n" "${PercentDone}" > ${cachedir}/percent.txt
+######################################################################
+        
 		update_cover
         
         if [ ! -f "$cachedir"/nowplaying.album.jpg ];then
@@ -442,9 +446,11 @@ main() {
                 if [ $FIRST_RUN == true ]; then
                     FIRST_RUN=false 
                     # Needed to set to see if reset needed of conky
-                    MPD_HOST=${MPDHost}
-                    echo "HOST IS $MPD_HOST"
+                    local conkympdhost=$(echo "${MPDHost}" | awk -F '@' '{print $2}')
+                    local conkympdpass=$(echo "${MPDHost}" | awk -F '@' '{print $1}')
                     # Needed for conky to use the right host stuff for MPD
+                    sed -o "s/mpd_host $PARTITION_COLUMN.*/${conkympdhost}/" "${ConkyFile}"
+                    sed "s/mpd_pass $PARTITION_COLUMN.*/${conkympdpass}/" "${ConkyFile}"
                     export MPD_HOST=${MPDHost}
                     ${conkybin} -c "$ConkyFile" &
                     echo $! >/tmp/vconky.pid
@@ -461,22 +467,28 @@ main() {
         # How do I have this swap back? I'm not sure. I may have to do a 
         #looping check instead  UUUGH
         CHANGES=""
+        echo "$MPDHost1"
+        echo "$MPDHost2"
+        mpc --host "$MPDHost1" idle & &> /dev/null 
+        MPC_PID1="$!"
+        mpc --host "$MPDHost2" idle & &> /dev/null 
+        MPC_PID2="$!"
         while [ -z ${CHANGES} ]; do
-            mpc --host "$MPDHost1" idle & &> /dev/null 
-            MPC_PID1="$!"
-            mpc --host "$MPDHost2" idle & &> /dev/null 
-            MPC_PID2="$!"
             sleep ${interval}
             if ps -p $MPC_PID1 > /dev/null; then
                 if ps -p $MPC_PID2 > /dev/null; then
                     continue
                 else
                     CHANGES="TRUE"
+                    echo "TWO CHANGED"
                 fi
             else
                 CHANGES="TRUE"
+                echo "ONE CHANGED"
             fi
         done
+        kill -9 "$MPC_PID1" &> /dev/null
+        kill -9 "$MPC_PID2" &> /dev/null
         echo "BONG#######################################################"
    done
 }
