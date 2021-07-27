@@ -437,7 +437,11 @@ main() {
                 fi
                 if [ $FIRST_RUN == true ]; then
                     FIRST_RUN=false 
-                    conky -c "$ConkyFile" &
+                    # Needed to set to see if reset needed of conky
+                    MPD_HOST=${MPDHost}
+                    # Needed for conky to use the right host stuff for MPD
+                    export MPD_HOST=${MPDHost}
+                    ${conkybin} -c "$ConkyFile" &
                     echo $! >/tmp/vconky.pid
                     VCONKYPID=$(echo $!)
                 fi
@@ -451,12 +455,23 @@ main() {
 		# this is lets vindauga use less CPU :)
         # How do I have this swap back? I'm not sure. I may have to do a 
         #looping check instead  UUUGH
-        sleep ${interval}
-#        while true; do
- #        if [[ "${useline}" == 'http'* ]];then
-  #          mpc --host "$MPDHost1" idle &> /dev/null || break
-   #         mpc --host "$MPDHost2" idle &> /dev/null || break
-    #    done
+        CHANGES=""
+        while [ -z ${CHANGES} ]; do
+            mpc --host "$MPDHost1" idle & &> /dev/null 
+            MPC_PID1="$!"
+            mpc --host "$MPDHost2" idle & &> /dev/null 
+            MPC_PID2="$!"
+            sleep ${interval}
+            if ps -p $MPC_PID1 > /dev/null; then
+                if ps -p $MPC_PID2 > /dev/null; then
+                    continue
+                else
+                    CHANGES="TRUE"
+                fi
+            else
+                CHANGES="TRUE"
+            fi
+        done
    done
 }
 
