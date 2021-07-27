@@ -435,10 +435,15 @@ main() {
                         FIRST_RUN=true
                     fi
                 fi
+                # Test to make sure settings are up to dates
+                if [ ${MPDHost} != ${MPD_HOST} ];then
+                    FIRST_RUN=true
+                fi
                 if [ $FIRST_RUN == true ]; then
                     FIRST_RUN=false 
                     # Needed to set to see if reset needed of conky
                     MPD_HOST=${MPDHost}
+                    echo "HOST IS $MPD_HOST"
                     # Needed for conky to use the right host stuff for MPD
                     export MPD_HOST=${MPDHost}
                     ${conkybin} -c "$ConkyFile" &
@@ -472,6 +477,7 @@ main() {
                 CHANGES="TRUE"
             fi
         done
+        echo "BONG#######################################################"
    done
 }
 
