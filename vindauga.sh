@@ -9,7 +9,6 @@
 # A (rather rewritten) fork of kunst (originally by Siddharth Dushantha)
 
 
-
 tempcover=$(mktemp)
 tempartist=$(mktemp)
 RunOnce=""
@@ -27,7 +26,7 @@ CONFIGFILE="$HOME/.config/vindauga.ini"
 MPDHost=""
 
 # Pull in plugins
-#export SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+export SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 #for plugin in ${SCRIPT_DIR}/plugins/*;do
 #    source ${plugin}
 #done
@@ -85,8 +84,13 @@ set_defaults (){
     if [ -z "$interval" ];then interval=1; fi    
     if [ -z "$cachedir" ];then cachedir="$HOME/.cache/vindauga" ; fi
     if [ ! -d "$cachedir" ];then mkdir -p "$cachedir"; fi
-    if [ -z "$ConkyFile" ];then ConkyFile="$HOME/.conky/vindauga_conkyrc"; fi
     if [ -z "$conkybin" ];then conkybin=$(which conky); fi
+    if [ -z "$ConkyFile" ];then 
+        ConkyFile="$HOME/.conky/vindauga_conkyrc"
+        if [ ! -f ${ConkyFile} ];then
+            ConkyFile="${SCRIPT_DIR}/vindauga_conkyrc"
+        fi
+    fi
     
     # If MPDHost isn't defined, check for env variable, and default to localhost
     if [ -z "$MPDHost1" ];then
@@ -181,7 +185,6 @@ update_artist() {
         if [ -z "$IMG_URL" ];then    
             API_URL="https://api.deezer.com/search/artist?q=$EscapedArtist" && API_URL=${API_URL//' '/'%20'}
             IMG_URL=$(curl -s "$API_URL" | jq -r '.data[0] | .picture_big ')
-        forest.ogg
             #deezer outputs a wonky url if there's no image match, this checks for it.
             # https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg
             check=$(awk 'BEGIN{print gsub(ARGV[2],"",ARGV[1])}' "$IMG_URL" "//")
@@ -219,17 +222,17 @@ update_cover() {
     ##########################################################################
     # Test for existing cache
     ##########################################################################
-    cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
-    cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
 
     # Preferentially using album artist if available. 
     if [ ! -z ${EscapedAlbumArtist} ];then
         cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedAlbumArtist")
         cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedAlbumArtist" "$EscapedAlbum")
+    else
+        cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
+        cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
     fi
-
-#TODO - UPDATE ARTIST BITS
-    #update_artist
+    
+    update_artist
     
     if [[ ! -f "$cachecover" ]] ;then
 
