@@ -102,17 +102,17 @@ This project is licensed under the MIT license. For the full license, see `LICEN
 
 ### Multiple MPD Hosts
     
-    `vindauga` can handle watching two different MPD instances.  I have one for 
-    [streaming and whole-house audio](https://ideatrash.net/2020/06/weekend-project-whole-house-and-streaming-audio-for-free-with-mpd.html), 
-    and a second on my laptop.  In the ini file, I configured my *laptop* 
-    instance as *MPDHost1* and the remote instance as *MPDHost2*.  If 
-    MPDHost1 is running, that's what displays.  If it is *not* running, then 
-    MPDHost2 is shown (it's always on).  If I start playing on MPDHost1 again, 
-    `vindauga` will automatically switch back to showing MPDHost1.  It rechecks 
-    the *process* for the idle loop for both hosts every "interval" (set in the 
-    ini file) seconds. 
-    
-    If MPDHost2 is not set, it just checks MPDHost1 by default.
+`vindauga` can handle watching two different MPD instances.  I have one for 
+[streaming and whole-house audio](https://ideatrash.net/2020/06/weekend-project-whole-house-and-streaming-audio-for-free-with-mpd.html), 
+and a second on my laptop.  In the ini file, I configured my *laptop* 
+instance as *MPDHost1* and the remote instance as *MPDHost2*.  If 
+MPDHost1 is running, that's what displays.  If it is *not* running, then 
+MPDHost2 is shown (it's always on).  If I start playing on MPDHost1 again, 
+`vindauga` will automatically switch back to showing MPDHost1.  It rechecks 
+the *process* for the idle loop for both hosts every "interval" (set in the 
+ini file) seconds. 
+
+If MPDHost2 is not set, it just checks MPDHost1 by default.
 
 ### vindauga.ini
 
