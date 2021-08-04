@@ -100,6 +100,10 @@ set_defaults (){
             MPDHost1="localhost"
         fi
     fi
+    
+    if [ -z "$MPDHost2" ];then
+        MPDHost2="$MPDHost1"
+    fi    
 
 # This is a base64 endcoded image which will be used if nothing is found    
 read -d '' DEFAULT_COVER << EOF
@@ -467,8 +471,6 @@ main() {
         fi
 		# Waiting for an event from mpd; play/pause/next/previous
 		# this is lets vindauga use less CPU :)
-        # How do I have this swap back? I'm not sure. I may have to do a 
-        #looping check instead  UUUGH
         CHANGES=""
         mpc --host "$MPDHost1" idle & &> /dev/null 
         MPC_PID1="$!"
