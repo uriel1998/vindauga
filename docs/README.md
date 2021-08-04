@@ -6,8 +6,6 @@ Download and display album art or display embedded (or folder-based) album art u
 
 ![Output example](https://raw.githubusercontent.com/uriel1998/vindauga/master/output.gif "Example output")
 
-
-
 ## Contents
  1. [About](#1-about)
  2. [License](#2-license)
@@ -16,8 +14,7 @@ Download and display album art or display embedded (or folder-based) album art u
  5. [Album Art Cache](#5-album-art-cache)
  6. [Using With Conky](#6-using-with-conky)
  7. [Using With SXIV](#7-using-with-sxiv) 
- 8. [Cantata Helper](#8-cantata-helper)
- 9. [TODO](#9-todo)
+ 8. [TODO](#9-todo)
 
 ***
 
@@ -40,7 +37,8 @@ event. When it receives a "player" event, it wakes up and takes action. This mak
 When `vindauga` wakes up, it looks at the currently playing track from `mpd`. It 
 then checks its own cache of album artwork (see below for details), then the 
 music folder, then embedded artwork, then the CoverArt Archive (if the music 
-has the MusicBrainz ID embedded), then Deezer. 
+has the MusicBrainz ID embedded), then Deezer. It can also use [sacad](https://github.com/desbma/sacad) as
+an album art provider.
 
 If none of those exist, it checks if there is a configured local directory 
 with images in it designated as placeholder images. If that doesn't exist, it 
@@ -71,6 +69,7 @@ This project is licensed under the MIT license. For the full license, see `LICEN
  * `curl` command-line tool for getting data using HTTP protocol. `curl` can be found on major Linux distributions.
  * `wget` command-line tool for getting data using HTTP protocol. `wget` can be found on major Linux distributions.
  * `grep` command-line tool used for parsing downloaded XML data. `grep` can be found on major Linux distributions.
+ * `sed` command-line tool for parsing string data. `sed` can be found on major Linux distributions.
  * `awk` command-line tool for parsing string data. `awk` can be found on major Linux distributions.
  * `ffmpeg` command-line tool for parsing string data. `ffmpeg` can be found on major Linux distributions.
  * `imagemagick` command-line tool for parsing string data. `imagemagick` can be found on major Linux distributions.
@@ -83,7 +82,8 @@ This project is licensed under the MIT license. For the full license, see `LICEN
  * `jq` command-line tool for parsing JSON data. `jq` can be found on major Linux distributions or on [GitHub](https://github.com/stedolan/jq)
 
 ### You do not have to choose all or any of these.
- 
+
+ * [Optional] `sacad`, the smart automatic cover downloader.  `sacad` is on [Github](https://github.com/desbma/sacad).
  * [Optional] `ionice`, to lower the io priority of the script. `ionice` can be found on major Linux distributions.
  * [Optional] `sxiv`, the Simple X Image Viewer, available in most major distributions or on [GitHub](https://github.com/muennich/sxiv)
  * [Optional] `conky`, a light-weight system monitor for X available in most major distributions or on [GitHub](https://github.com/brndnmtthws/conky)
@@ -100,37 +100,56 @@ This project is licensed under the MIT license. For the full license, see `LICEN
 
  For example, as I use the conky interface, I have two keybinds.  One calls `vindauga -y -z`.  That starts vindauga and the conky interface. The other calls `vindauga -k` and kills the process efficiently.  You can even do this in a single script. For example, a single binding that calls `vindauga_toggle.sh` will start the conky process and daemon, and a second run of it will turn it off.
 
-### vindauga.rc
+### Multiple MPD Hosts
+    
+    `vindauga` can handle watching two different MPD instances.  I have one for 
+    [streaming and whole-house audio](https://ideatrash.net/2020/06/weekend-project-whole-house-and-streaming-audio-for-free-with-mpd.html), 
+    and a second on my laptop.  In the ini file, I configured my *laptop* 
+    instance as *MPDHost1* and the remote instance as *MPDHost2*.  If 
+    MPDHost1 is running, that's what displays.  If it is *not* running, then 
+    MPDHost2 is shown (it's always on).  If I start playing on MPDHost1 again, 
+    `vindauga` will automatically switch back to showing MPDHost1.  It rechecks 
+    the *process* for the idle loop for both hosts every "interval" (set in the 
+    ini file) seconds. 
+    
+    If MPDHost2 is not set, it just checks MPDHost1 by default.
 
-The file `vindauga.rc` is optional, and goes in `$HOME\.config`. Do **NOT** 
-remove the commented lines. The example below has the defaults (if there is 
-no rc file) in place.
+### vindauga.ini
+
+### ** NOTE **  The ini format has changed since version 0.9 
+
+The file `vindauga.ini` goes in `$HOME\.config`. 
 
 ```
 # Music Dir
-$HOME/music
+musicdir=/home/USER/music
 # Cache Dir
-$HOME/.cache/vindauga
+cachedir=/home/USER/.cache/vindauga
 # Placeholder Image
-
+placeholder_img=
 # Placeholder Directory
-
+placeholder_dir=/home/USER/vault/albumcovers
 # Display Size
-256
+display_size=
 #SXIV X position
-64
+XCoord=500
 #SXIV Y position
-64
-#ConkyFile location
-$HOME/.conky/vindauga_conkyrc
-#Last.FM API key (OPTIONAL)
+YCoord=100
+#Conkyfile Location
+ConkyFile=/home/USER/.conky/vindauga_conkyrc
+#Last FM API Key
+LastfmAPIKey=
+#MPD Hosts 
+MPDHost1=password@localhost
+MPDHost2=pass@remotehost
+#WebCover Base
+webcovers=
+interval=
+conkybin=
 
-#MPD Host
-PASSWORD@HOST
 ```
 
-As the functionality expands, additional lines may be added to the bottom, 
-allowing for backward compatibility.
+### ** NOTE **  The ini format has changed since version 0.9 
 
 ## 5. Album Art Cache
 
@@ -166,9 +185,10 @@ When there is a special character - `/()&` - it is completely omitted in
 writing the cache filename. This is intentional behavior to minimize the 
 number of times that the program chokes. (Hopefully zero!)
 
-The artist image is likewise obtained from Deezer or Last.fm (if you obtain a
+The album and artist image are obtained from Deezer or Last.fm (if you obtain a
 last.fm [API key](https://www.last.fm/api) and put it in the config file) and 
-stored in the cache directory.
+stored in the cache directory.  If [sacad](https://github.com/desbma/sacad) is 
+in your `$PATH` it will attempt to get album art using that provider.
 
 If you use the `ffixer_covers.sh` file, it will softlink from the music directory. 
 This is obviously superior in terms of space saved.
@@ -183,6 +203,9 @@ configurations is well past the scope of this document.
 See the file `vindauga_conkyrc` for the example.  It includes both the base image 
 seen in the screenshot below as well as an XCF file if you wish to design your 
 own. 
+
+The conkyfile will have the MPD host and password settings dynamically changed 
+(by `sed`) by `vindauga`! 
 
 ![Output example](https://raw.githubusercontent.com/uriel1998/vindauga/master/updated_vindauga_conky.png "Example output")
 
@@ -229,20 +252,12 @@ Or if you don't want to move it around, and have it be below other windows:
     </application>       
 ```
 
-## 8. Cantata Helper
-
-The artist images that Cantata fetches are - for me at least - frequently not 
-correct. I'm not sure why, honestly. But I figured that since I'm pulling down 
-the artist images anyway and storing them in the cache directory, I might as 
-well use them. The script `cantata-helper.sh` reads vindauga's rc, then symlinks 
-the appropriate artist images from vindauga's cache.  
-
-## 9. Todo
+## 8. Todo
 
  * Write folder.jpg and cover.jpg to music directories, if desired.
  * Embed found album art, if desired.
  * Create script to retrieve artwork without or using `vindauga`
- * Specify different mpd profiles to MPC so that you can view albumart for a remote MPD
  * Incorporate makefile for those who want it?
  * Automatically softlink data for Ario / GMPC
  * Automatically softlink albumart for cantata
+ * Plugin for file output

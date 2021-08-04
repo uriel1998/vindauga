@@ -6,12 +6,6 @@ Download and display album art or display embedded (or folder-based) album art u
 
 ![Output example](https://raw.githubusercontent.com/uriel1998/vindauga/master/output.gif "Example output")
 
-# always define mpdhost1
-# sacad should be in $PATH
-# conky rc now has mpd settings written in dynamically
-# Need output plugin for file output
-
-
 ## Contents
  1. [About](#1-about)
  2. [License](#2-license)
@@ -266,3 +260,4 @@ Or if you don't want to move it around, and have it be below other windows:
  * Incorporate makefile for those who want it?
  * Automatically softlink data for Ario / GMPC
  * Automatically softlink albumart for cantata
+ * Plugin for file output
