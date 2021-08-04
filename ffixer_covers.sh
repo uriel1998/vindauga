@@ -25,19 +25,46 @@ trim() {
 }
 
 
-    if [ -f "$HOME/.config/vindauga.rc" ];then
-        readarray -t line < "$HOME/.config/vindauga.rc"
-        musicdir=${line[1]}
-        cachedir=${line[3]}
-        placeholder_img=${line[5]}
-        placeholder_dir=${line[7]} 
-        display_size=${line[9]} 
-        XCoord=${line[11]} 
-        YCoord=${line[13]} 
-        ConkyFile=${line[15]} 
-        LastfmAPIKey=${line[17]}
+    if [ -f "${CONFIGFILE}" ];then
+        echo "[info] Reading configuration"
+        while read -r line; do 
+            key=$(echo "$line" | awk -F '=' '{print $1}')
+            value=$(echo "$line" | cut -d'=' -f 2- )
+           case $key in
+                musicdir) MUSICDIR="${value}";;
+                cachedir) CACHEDIR="${value}";;
+                placeholder_img) placeholder_img="${value}";;
+                placeholder_dir) placeholder_dir="${value}";;
+                display_size) display_size="${value}";;
+                XCoord) XCoord="${value}";;
+                YCoord) YCoord="${value}";;
+                ConkyFile) ConkyFile="${value}";; 
+                LastfmAPIKey) LastfmAPIKey="${value}";;
+                MPDHost1) MPDHost1="${value}";;
+                MPDHost2) MPDHost2="${value}";;
+                webcovers) webcovers="${value}";;
+                interval) interval="${value}";;
+                conkybin) conkybin="${value}";;
+                *) ;;
+            esac
+        done < "${CONFIGFILE}"
+        echo "[info] Finished reading configuration."
     fi
-
+        
+    if [ -z "$MusicDir" ] || [ ! d "$MusicDir" ]; then MusicDir="$HOME/music"; fi
+    if [ -z "$display_size" ];then display_size=256; fi
+    if [ -z "$XCoord" ];then XCoord=64; fi
+    if [ -z "$YCoord" ];then YCoord=64; fi
+    if [ -z "$interval" ];then interval=1; fi    
+    if [ -z "$cachedir" ];then cachedir="$HOME/.cache/vindauga" ; fi
+    if [ ! -d "$cachedir" ];then mkdir -p "$cachedir"; fi
+    if [ -z "$conkybin" ];then conkybin=$(which conky); fi
+    if [ -z "$ConkyFile" ];then 
+        ConkyFile="$HOME/.conky/vindauga_conkyrc"
+        if [ ! -f ${ConkyFile} ];then
+            ConkyFile="${SCRIPT_DIR}/vindauga_conkyrc"
+        fi
+    fi
 
 SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
