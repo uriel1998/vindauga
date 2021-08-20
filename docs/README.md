@@ -202,7 +202,8 @@ configurations is well past the scope of this document.
 
 See the file `vindauga_conkyrc` for the example.  It includes both the base image 
 seen in the screenshot below as well as an XCF file if you wish to design your 
-own. 
+own.  If you have a newer version of conky, with the lua-style formatted config, 
+use `vindauga_conkyrc_newformat` instead.
 
 The conkyfile will have the MPD host and password settings dynamically changed 
 (by `sed`) by `vindauga`! 
