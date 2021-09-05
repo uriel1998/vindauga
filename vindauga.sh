@@ -105,6 +105,8 @@ set_defaults (){
         MPDHost2="$MPDHost1"
     fi    
 
+echo "$MPDHost2"
+
 # This is a base64 endcoded image which will be used if nothing is found    
 read -d '' DEFAULT_COVER << EOF
 iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAGqUlEQVRoge2Ze2yV5R3HP9/nnNNyEbkfKJTBjA7CRP9gCZTMUY3MMbOAtCUC4iXDhZiYAS0GHXHg2ILSohM3ZYNsuARjS0GcMcZLJJGsKMMtLgisW9dS2gGtXLW15/R9f/ujsPVyTs97TsuSLf38+Ty/5/t+v+e5vJcDAwwwwP806g+RG9+szr7YFrlDvmaYmCBjImYfZW0trjFfdyOqkaojcQ7WHq443avYBnPjbjn5UzO+BRa62myoBeOlpsLJ5f0T4H0Lj/usvshkBcBdwHWduw3tjJSuOS7Y0qnZBz4wrCIcyt598uDu891lx+6tK5JR3r39CvEsz40/tXjSuasNLhPvY/fWFUXP1R012W6goLv5XnDAXKEXPC9WMyGvsOTG+fOzOxcIm9zL+Eg8bBO6CwY3vqf+pmhl7aGOX0hfS2dsAkYItrReGHI8d3ZhfqYigQOMq6y708n/EDQr04slRlNMvJObV/TDTEaHgxRF955caWbbgtZn4sOw5ybmFQ6JQzydgSlnILq3dhFmv+Tame9Mb+s/Ib0GiO6pvwXTy/TTcXstSBpgbPnZ65C/Hxj6X/Qzynw19dJvfrvX3LkhaQCFWouBKf1kLCh3Zr/+q3eRvQI0AnalPWZQD6xrWvzVLjfChOs6ur9mHO2UXFuvCRlJ9Ym3w6UlTzRmNd8ffXRXMzDcYF9TweR7Ew1IOANqD68n+M2pXzGYLuO1ia2jxgep7xmg3EKGLe2jj2pk1U52sY86KemxhMar9jYfNypDvT3O+Wvdzx73QuH4dA/qPE83hEN2H7AeyOqT2wT0COA5tyCDM9MXtjxUWlIreIswU32EgHDIzmG2xqTbBfuAaN9t/4ceS0gwN20VURYpK24TfABM7dY7Cum3MhbJ2UMZ+kxKgk1suWlq1EYqf/G8mbYn1ruCWIOnFuCNNPV7pcsFv15+NAs0Jj0JVVrN3xcAo1MVIn4g2evp6fdOlwDnQoNzSPOxQfjHZZoZpNbgGxJ/Skc/FV028T8LXq6fkv/nkekIDG2KtFwYxpyg9fF21xJylrowIF0C3DDz6LC2tvB5Ol79mglwYpwfbjswOyKUcoMK/hgKMZ3+8991CdUcqbgINAmOCy0OIiDjnpiL70M0pyg10HYZyzI1m4gEp4b+ajC1PcynQCyAxugsP3uFsJWAl7TK2Ir8MYYtzNRsIhIE8I8CIRf3b8X0cRARYRt8FEG6DTjRrfsc8IBz/qtmerGvhrvTI4CDvQByzAc/2eeN7kjGK5itkW/fw/cnmbjLnKYJ3QRM881VAWMDaH0OPOktW9VGgLfAHgX1ue7diafsLKaHIp6mx8O2ERgWMEihORWCLsg4hjHMsGlBjNCx/Ha0jsjZFFlRUmhwjAAvUz2XUEWFZ+JVYGQszN3AjoDmOzMCyAO7mWDm3/AtNCO2tuy98IqSAwbPcvXGKE5I7Ew2MOFNK2fOosnO3DGgSWiOya/CNCn9HKnQxzivJL7m2RioFGx2p84zmDaeHT3p19yu9qQKyTpy8wo2GnoS2YvO2O+jt/rReZ2MH3256unDLhLZDHZPp74WUJl5g55pWhz9PJVQL9PrNoM9iGmlGb836TFhz6TrVHAJ7DmT+0gwEfxBLC+ujEdz1znsN2CRK6W+sF3x2OUfD972VL4XYjAdGzqVfnJyZxfMMul9wAzmYcyT2BDUvMHp0Licb8aWFy8xNB90xuR/Kl+PIq7v5OJtfLc2Urb6K4KnzWxbw6HKl4JcI+WD24S8goVClcAl52yeZ5oh4wVgSEpx475YSdlcxMNJEv4FtDa0pbjZOSsF8sF+3lBVuSqIeQjwZa6xqvI14BHget/XQUxDnbxZEkdSjW0dM+YA4oEEXafN7Pt6fv2CcNnq+52zw0C+iR0NVZWrg5oPFACgoWrPdvP1HeALYdvMwj/BsyVCi4BPko2TCxskfHR7Nqu0OCscbz0mtBRA6PHGP+x5OEl93wIANH5Y8Y5n4Zmgw4YtNKdjhi0MOVsacnazxDrgPaAGaAMY1HQmH9jVTeqyu9RSLukxIFvwDzP79qmqis3pGL9KJt88NWF20WI5/yns3/8R/M2MN510wPM5me3TEAv73xXa5A0fM8dWPLHMZPMFjWZuU6Rs9b3AIxjb2lsGbz7zye++yMR8pgE6KCoK5Tb4SzAVGswj+aa+AGxVx8xFEVPx9Vl2nJ1XHt/7RL98dZ6S/+Cg9vjlO8zXrSZyZOQYijrsS4MLErXm2xELu0ONBytO9sc1BxhggP8T/gV0Z3bopSEc6QAAAABJRU5ErkJggg==
@@ -456,8 +458,8 @@ main() {
                     conkympdhost=$(echo "${MPDHost}" | awk -F '@' '{print $2}')
                     conkympdpass=$(echo "${MPDHost}" | awk -F '@' '{print $1}')
                     # Needed for conky to use the right host stuff for MPD
-                    sed -i "s/^mpd_host.*/mpd_host ${conkympdhost}/" "${ConkyFile}"
-                    sed -i "s/^mpd_password.*/mpd_password ${conkympdpass}/" "${ConkyFile}"
+                    sed -i "s/mpd_host.*/mpd_host = \'${conkympdhost}',/" "${ConkyFile}"
+                    sed -i "s/mpd_password.*/mpd_password = \'${conkympdpass}\',/" "${ConkyFile}"
                     export MPD_HOST=${MPDHost}
                     ${conkybin} -c "$ConkyFile" & 
                     echo $! >/tmp/vconky.pid
