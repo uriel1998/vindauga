@@ -70,11 +70,10 @@ SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 ENTRIES=$(find -name '*.mp3' -printf '%h\n' | sort -u | grep -c / )
 CURRENTENTRY=1
-find -H . -type f \( -name "*.bz2" -or -name "*.gz"  -or -name "*.iso" -or -name "*.tgz" -or -name "*.rar" -or -name "*.zip" \) -exec chmod 666 '{}' ';'
+#find -H . -type f \( -name "*.bz2" -or -name "*.gz"  -or -name "*.iso" -or -name "*.tgz" -or -name "*.rar" -or -name "*.zip" \) -exec chmod 666 '{}' ';'
 find -name '*.mp3' -printf '%h\n' | sort -u | realpath -p > "$dirlist"
 while read line
 do
-   
     cleanup
     TITLE=""
     ALBUMARTIST=""
@@ -126,6 +125,7 @@ do
         ALBUM=$(echo "$songdata" | grep "album" | head -1 | awk -F ': ' '{for(i=2;i<=NF;++i)print $i}' | tr '\n' ' ')
         ARTIST=$(trim "$ARTIST")
         ALBUM=$(trim "$ALBUM")
+
         CoverExist=$(echo "$songdata" | grep -c "front")
         if [ $CoverExist -gt 0 ];then
             DATA=`eyeD3 "$SONGFILE" 2>/dev/null | sed 's/\x0//g' `
@@ -138,6 +138,7 @@ do
         
         ####################################################################    
         # Albumart file, nothing in MP3
+        # This adds the found album art INTO the mp3
         ####################################################################
         #if [[ ! -z "$FILTER" ]] && [[ -z "$COVER" ]];then
          #   echo "### Cover art retrieved from music directory!"
@@ -193,19 +194,62 @@ do
         ####################################################################
         # No albumart file, nothing in MP3
         ####################################################################    
+
+        ##########################################################################
+        # Attempt to get coverart from CoverArt Archive or Deezer
+        ##########################################################################
+        MBID=""
+        IMG_URL=""
+        API_URL=""   
+        
+        if [ ! -f "$fullpath/folder.jpg" ];then
+            MBID=$(ffmpeg -i "$SongFile" 2>&1 | grep "MusicBrainz Album Id:" | awk -F ': ' '{print $2}')
+            if [ "$MBID" = '' ] || [ "$MBID" = 'null' ];then
+                API_URL="http://coverartarchive.org/release/$MBID/front"
+                IMG_URL=$(curl "$API_URL" | awk -F ': ' '{print $2}')
+            fi
+            
+            if [ "$IMG_URL" = '' ] || [ "$IMG_URL" = 'null' ];then
+                echo "Not on CoverArt Archive or Deezer"
+            else
+                # I don't know why curl hates me here.
+                #curl -o "$tempcover" "$IMG_URL"
+                wget -q "$IMG_URL" -O "$TMPDIR/FRONT_COVER.jpeg"
+                if [ -f "$TMPDIR/FRONT_COVER.jpeg" ];then
+                    convert "$TMPDIR/FRONT_COVER.jpeg" "$fullpath/cover.jpg"
+                    convert "$TMPDIR/FRONT_COVER.jpeg" "$fullpath/folder.jpg"
+                fi
+            fi
+        fi
+
         if [ ! -f "$fullpath/cover.jpg" ];then
             glyrc cover --timeout 15 --artist "$ARTIST" --album "$ALBUM" --write "$TMPDIR/cover.tmp" --from "musicbrainz;discogs;coverartarchive;rhapsody;lastfm"
             convert "$TMPDIR/cover.tmp" "$TMPDIR/cover.jpg"
-            #tempted to be a hard stop here, because sometimes these covers are just wrong.
-            if [ -f "$TMPDIR/cover.jpg" ]; then
-                cp "$TMPDIR/cover.jpg" "$fullpath/cover.jpg"
-                cp "$TMPDIR/cover.jpg" "$fullpath/folder.jpg"
-                echo "Cover art found online; you may wish to check it before embedding it."
-                
-            else
-                echo "No cover art found online or elsewhere."
-            fi        
         fi
+        
+        ##########################################################################
+        # Attempt to find cover art via sacad if it's in $PATH
+        # (no cache cover, no local art in directory
+        ##########################################################################
+        if [ ! -f "$fullpath/folder.jpg" ];then
+            sacad_bin=$(which sacad)
+            if [ -f "${sacad_bin}" ];then 
+                "${sacad_bin}" -d "${Artist}" "${Album}" 512 "$TMPDIR/FRONT_COVER.jpeg"
+                if [ -f "$TMPDIR/FRONT_COVER.jpeg" ];then
+                    convert "$TMPDIR/FRONT_COVER.jpeg" "$fullpath/cover.jpg"
+                    convert "$TMPDIR/FRONT_COVER.jpeg" "$fullpath/folder.jpg"
+                fi
+            fi
+        fi
+        #tempted to be a hard stop here, because sometimes these covers are just wrong.
+        if [ -f "$TMPDIR/cover.jpg" ]; then
+            cp "$TMPDIR/cover.jpg" "$fullpath/cover.jpg"
+            cp "$TMPDIR/cover.jpg" "$fullpath/folder.jpg"
+            echo "Cover art found online; you may wish to check it before embedding it."
+            
+        else
+            echo "No cover art found online or elsewhere."
+        fi        
     fi
     
     ##########################################################################
