@@ -70,8 +70,13 @@ SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 ENTRIES=$(find -name '*.mp3' -printf '%h\n' | sort -u | grep -c / )
 CURRENTENTRY=1
-#find -H . -type f \( -name "*.bz2" -or -name "*.gz"  -or -name "*.iso" -or -name "*.tgz" -or -name "*.rar" -or -name "*.zip" \) -exec chmod 666 '{}' ';'
-find -name '*.mp3' -printf '%h\n' | sort -u | realpath -p > "$dirlist"
+
+# This is split to avoid realpath choking on some UTF-8 directory names
+echo "Obtaining directory names"
+Variable=$(find -name '*.mp3' -printf '%h\n' | sort -u )
+echo "Sorting and cleaning directory names"
+echo -e "${Variable}" | realpath -p > "$dirlist"
+
 while read line
 do
     cleanup
@@ -84,35 +89,37 @@ do
     LOOPEND="False"
     #SONGFILE="$file"
     #SongDir=$(dirname "${SONGFILE}")
-    dir=$(echo "$line")
-    SongDir=$(echo "$dir")
-    fullpath=$(realpath "$dir")
+    dir=$(echo "${line}")
+    SongDir=$(echo "${dir}")
+    fullpath=$(realpath "${dir}")
     SONGFILE=$(find "$fullpath" -name '*.mp3' | head -1) 
     echo "$CURRENTENTRY of $ENTRIES $dir"
     CURRENTENTRY=$(($CURRENTENTRY+1))
+    
+    
 
     ####################################################################
     # Do cover files exist? If so, make sure both cover and folder exist.
     ####################################################################
-    if [ -f "$fullpath/cover.png" ];then
-        convert "$fullpath/cover.png" "$fullpath/cover.jpg"
-        rm "$fullpath/cover.png"
+    if [ -f "${fullpath}/cover.png" ];then
+        convert "${fullpath}/cover.png" "${fullpath}/cover.jpg"
+        rm "${fullpath}/cover.png"
     fi
-    if [ -f "$fullpath/folder.png" ];then
-        convert "$fullpath/folder.png" "$fullpath/folder.jpg"
-        rm "$fullpath/folder.png"
+    if [ -f "${fullpath}/folder.png" ];then
+        convert "${fullpath}/folder.png" "${fullpath}/folder.jpg"
+        rm "${fullpath}/folder.png"
     fi
 
-    if [ ! -f "$fullpath/cover.jpg" ] && [ -f "$fullpath/folder.jpg" ];then
-        cp "$fullpath/folder.jpg" "$fullpath/cover.jpg"
+    if [ ! -f "${fullpath}/cover.jpg" ] && [ -f "${fullpath}/folder.jpg" ];then
+        cp "${fullpath}/folder.jpg" "${fullpath}/cover.jpg"
     fi
-    if [ ! -f "$fullpath/folder.jpg" ] && [ -f "$fullpath/cover.jpg" ];then
-        cp "$fullpath/cover.jpg" "$fullpath/folder.jpg"
+    if [ ! -f "${fullpath}/folder.jpg" ] && [ -f "${fullpath}/cover.jpg" ];then
+        cp "${fullpath}/cover.jpg" "${fullpath}/folder.jpg"
 
     fi
 
     #read
-    if [ ! -f "$fullpath/cover.jpg" ];then
+    if [ ! -f "${fullpath}/cover.jpg" ];then
         echo "Nothing found in directory $fullpath"
         ########################################################################
         # Getting data from song along with a 
@@ -152,7 +159,7 @@ do
          #           convert "$SongDir/folder.jpg" "$SongDir/cover.jpg"
          #       fi
          #   fi
-         #   echo "$fullpath/cover.jpg"
+         #   echo "${fullpath}/cover.jpg"
         #    eyeD3 --add-image="$SongDir/cover.jpg":FRONT_COVER "$SONGFILE" 2>/dev/null
         #fi
 
@@ -185,9 +192,9 @@ do
         if [ -f "$TMPDIR/FRONT_COVER.jpeg" ]; then
             echo "### Cover art retrieved from MP3 ID3 tags!"
             echo "### Cover art being copied to music directory!"
-            echo "$fullpath/cover.jpg"
-            cp "$TMPDIR/FRONT_COVER.jpeg" "$fullpath/cover.jpg"
-            cp "$TMPDIR/FRONT_COVER.jpeg" "$fullpath/folder.jpg"
+            echo "${fullpath}/cover.jpg"
+            cp "$TMPDIR/FRONT_COVER.jpeg" "${fullpath}/cover.jpg"
+            cp "$TMPDIR/FRONT_COVER.jpeg" "${fullpath}/folder.jpg"
                 
         fi
         
@@ -202,7 +209,7 @@ do
         IMG_URL=""
         API_URL=""   
         
-        if [ ! -f "$fullpath/folder.jpg" ];then
+        if [ ! -f "${fullpath}/folder.jpg" ];then
             MBID=$(ffmpeg -i "$SongFile" 2>&1 | grep "MusicBrainz Album Id:" | awk -F ': ' '{print $2}')
             if [ "$MBID" = '' ] || [ "$MBID" = 'null' ];then
                 API_URL="http://coverartarchive.org/release/$MBID/front"
@@ -216,13 +223,13 @@ do
                 #curl -o "$tempcover" "$IMG_URL"
                 wget -q "$IMG_URL" -O "$TMPDIR/FRONT_COVER.jpeg"
                 if [ -f "$TMPDIR/FRONT_COVER.jpeg" ];then
-                    convert "$TMPDIR/FRONT_COVER.jpeg" "$fullpath/cover.jpg"
-                    convert "$TMPDIR/FRONT_COVER.jpeg" "$fullpath/folder.jpg"
+                    convert "$TMPDIR/FRONT_COVER.jpeg" "${fullpath}/cover.jpg"
+                    convert "$TMPDIR/FRONT_COVER.jpeg" "${fullpath}/folder.jpg"
                 fi
             fi
         fi
 
-        if [ ! -f "$fullpath/cover.jpg" ];then
+        if [ ! -f "${fullpath}/cover.jpg" ];then
             glyrc cover --timeout 15 --artist "$ARTIST" --album "$ALBUM" --write "$TMPDIR/cover.tmp" --from "musicbrainz;discogs;coverartarchive;rhapsody;lastfm"
             convert "$TMPDIR/cover.tmp" "$TMPDIR/cover.jpg"
         fi
@@ -231,20 +238,20 @@ do
         # Attempt to find cover art via sacad if it's in $PATH
         # (no cache cover, no local art in directory
         ##########################################################################
-        if [ ! -f "$fullpath/folder.jpg" ];then
+        if [ ! -f "${fullpath}/folder.jpg" ];then
             sacad_bin=$(which sacad)
             if [ -f "${sacad_bin}" ];then 
                 "${sacad_bin}" -d "${Artist}" "${Album}" 512 "$TMPDIR/FRONT_COVER.jpeg"
                 if [ -f "$TMPDIR/FRONT_COVER.jpeg" ];then
-                    convert "$TMPDIR/FRONT_COVER.jpeg" "$fullpath/cover.jpg"
-                    convert "$TMPDIR/FRONT_COVER.jpeg" "$fullpath/folder.jpg"
+                    convert "$TMPDIR/FRONT_COVER.jpeg" "${fullpath}/cover.jpg"
+                    convert "$TMPDIR/FRONT_COVER.jpeg" "${fullpath}/folder.jpg"
                 fi
             fi
         fi
         #tempted to be a hard stop here, because sometimes these covers are just wrong.
         if [ -f "$TMPDIR/cover.jpg" ]; then
-            cp "$TMPDIR/cover.jpg" "$fullpath/cover.jpg"
-            cp "$TMPDIR/cover.jpg" "$fullpath/folder.jpg"
+            cp "$TMPDIR/cover.jpg" "${fullpath}/cover.jpg"
+            cp "$TMPDIR/cover.jpg" "${fullpath}/folder.jpg"
             echo "Cover art found online; you may wish to check it before embedding it."
             
         else
@@ -257,7 +264,7 @@ do
     ##########################################################################
 
     if [ -d "$cachedir" ];then
-        if [ -f "$fullpath/cover.jpg" ];then
+        if [ -f "${fullpath}/cover.jpg" ];then
             SONGFILE=$(find "$fullpath" -name '*.mp3' | head -1) 
             songdata=$(ffprobe "$SONGFILE" 2>&1)
             ARTIST=$(echo "$songdata" | grep "artist" | grep -v "mp3," | head -1 | awk -F ': ' '{for(i=2;i<=NF;++i)print $i}')
@@ -317,7 +324,7 @@ do
             
              
             if [ ! -f "$cachecover" ];then
-                ln -s "$fullpath/cover.jpg" "$cachecover"
+                ln -s "${fullpath}/cover.jpg" "$cachecover"
             fi
             ARTIST=""
             if [ -f "$TMPDIR/artist.tmp" ];then
