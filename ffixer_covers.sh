@@ -241,7 +241,7 @@ do
         if [ ! -f "${fullpath}/folder.jpg" ];then
             sacad_bin=$(which sacad)
             if [ -f "${sacad_bin}" ];then 
-                "${sacad_bin}" -d "${Artist}" "${Album}" 512 "$TMPDIR/FRONT_COVER.jpeg"
+                "${sacad_bin}" "${Artist}" "${Album}" 512 "$TMPDIR/FRONT_COVER.jpeg"
                 if [ -f "$TMPDIR/FRONT_COVER.jpeg" ];then
                     convert "$TMPDIR/FRONT_COVER.jpeg" "${fullpath}/cover.jpg"
                     convert "$TMPDIR/FRONT_COVER.jpeg" "${fullpath}/folder.jpg"
@@ -273,8 +273,8 @@ do
             ALBUM=$(trim "$ALBUM")
             EscapedArtist=$(echo "$ARTIST" | sed -e 's/[/()&]//g')
             EscapedAlbum=$(echo "$ALBUM" | sed -e 's/[/()&]//g')
-            cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
-            cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
+            cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "${EscapedArtist}" "${EscapedAlbum}")
+            cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "${EscapedArtist}")
             
             #Adding in glyrc search for artist image...
             if [ ! -f "$cacheartist" ];then
@@ -288,7 +288,7 @@ do
 
             if [ ! -f "$cacheartist" ];then
                 echo "Trying deezer..."
-                API_URL="https://api.deezer.com/search/artist?q=$EscapedArtist" && API_URL=${API_URL//' '/'%20'}
+                API_URL="https://api.deezer.com/search/artist?q=${EscapedArtist}" && API_URL=${API_URL//' '/'%20'}
                 IMG_URL=$(curl -s "$API_URL" | jq -r '.data[0] | .picture_big ')
                 #deezer outputs a wonky url if there's no image match, this checks for it.
                 # https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg
@@ -302,7 +302,7 @@ do
                 if [ ! -z "$LastfmAPIKey" ] && [ -z "$IMG_URL" ];then  # deezer first, then lastfm
                     echo "Trying lastfm..."
                     METHOD=artist.getinfo
-                    API_URL="https://ws.audioscrobbler.com/2.0/?method=$METHOD&artist=$EscapedArtist&api_key=$LastfmAPIKey&format=json" && API_URL=${API_URL//' '/'%20'}
+                    API_URL="https://ws.audioscrobbler.com/2.0/?method=$METHOD&artist=${EscapedArtist}&api_key=$LastfmAPIKey&format=json" && API_URL=${API_URL//' '/'%20'}
                     IMG_URL=$(curl -s "$API_URL" | jq -r ' .artist | .image ' | grep -B1 -w "extralarge" | grep -v "extralarge" | awk -F '"' '{print $4}')            
                 fi  
                 
@@ -323,8 +323,8 @@ do
             
             
              
-            if [ ! -f "$cachecover" ];then
-                ln -s "${fullpath}/cover.jpg" "$cachecover"
+            if [ ! -f "${cachecover}" ];then
+                ln -s "${fullpath}/cover.jpg" "${cachecover}"
             fi
             ARTIST=""
             if [ -f "$TMPDIR/artist.tmp" ];then
