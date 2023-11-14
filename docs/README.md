@@ -11,11 +11,7 @@ Display album art or display embedded (or folder-based) album art using a bash s
  2. [License](#2-license)
  3. [Prerequisites](#3-prerequisites)
  4. [How to use](#4-how-to-use)
- 5. [Album Art Cache](#5-album-art-cache)
- 6. [Using With Conky](#6-using-with-conky)
- 7. [Using With SXIV](#7-using-with-sxiv) 
- 8. [TODO](#9-todo)
-
+ 
 ***
 
 ## 1. About
@@ -83,7 +79,7 @@ It will put the current cover in `${XDG_CACHE_HOME}/vindauga/nowplaying.album.pn
 after making the corners of the cover rounded. If you are also using [yadshow](https://ideatrash.net/2023/10/get-a-quick-popup-of-your-current-cover-art-from-the-music-player-daemon-mpd.html),
 it will symlink it so the two directories point to the same location to avoid duplicated effort.
 
-## 6. Using with Conky
+### With Conky
 
 I have enclosed a basic configuration for `conky` (as seen in the video above) 
 that has the information and layout that I want. Editing `conky` 
