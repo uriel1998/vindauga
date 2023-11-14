@@ -79,7 +79,6 @@ function get_coverart () {
         SONGSTRING=$(audtool current-song)
         SONGFILE=$(audtool current-song-filename)
     else
-        echo "hi"
         # checking if MPD_HOST is set or exists in .bashrc
         # if neither is set, will just go with defaults (which will fail if 
         # password is set.) 
