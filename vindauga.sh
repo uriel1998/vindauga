@@ -45,7 +45,6 @@ if [ ! -d "${VINDAUGA_CACHE}" ];then
     else
         loud "Making cache directory"
         mkdir -p "${VINDAUGA_CACHE}"
-        ln -s "${XDG_CACHE_HOME}/vindauga" "${XDG_CACHE_HOME}/yadshow"
     fi
 fi
 
@@ -80,6 +79,7 @@ function get_coverart () {
         SONGSTRING=$(audtool current-song)
         SONGFILE=$(audtool current-song-filename)
     else
+        echo "hi"
         # checking if MPD_HOST is set or exists in .bashrc
         # if neither is set, will just go with defaults (which will fail if 
         # password is set.) 
@@ -105,6 +105,7 @@ function get_coverart () {
             fi
         fi
     fi
+    echo "${SONGSTRING}"
     if [ "$COVERFILE" == "" ];then
         COVERFILE=${DEFAULT_COVER}
     fi
