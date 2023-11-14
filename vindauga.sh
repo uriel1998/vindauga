@@ -94,26 +94,28 @@ function get_coverart () {
             SONGSTRING=$(mpc current --format "%artist% - %album% - %title%")
         fi
     fi
-    if [ -f "${SONGFILE}" ];then 
-        SONGDIR=$(dirname "$(readlink -f "${SONGFILE}")")
-    
-        if [ -f "$SONGDIR"/folder.jpg ];then
-            COVERFILE="$SONGDIR"/folder.jpg
-        else
-            if [ -f "$SONGDIR"/cover.jpg ];then
-                COVERFILE="$SONGDIR"/cover.jpg
+    SONGCHECK=$(head -1 "${VINDAUGA_CACHE}/songinfo")
+    if [ "${SONGSTRING}" != "${SONGCHECK}" ];then 
+        if [ -f "${SONGFILE}" ];then 
+            SONGDIR=$(dirname "$(readlink -f "${SONGFILE}")")
+        
+            if [ -f "$SONGDIR"/folder.jpg ];then
+                COVERFILE="$SONGDIR"/folder.jpg
+            else
+                if [ -f "$SONGDIR"/cover.jpg ];then
+                    COVERFILE="$SONGDIR"/cover.jpg
+                fi
             fi
         fi
+        if [ "$COVERFILE" == "" ];then
+            COVERFILE=${DEFAULT_COVER}
+        fi
+        echo "${SONGSTRING}" > "${VINDAUGA_CACHE}/songinfo"
+        TEMPFILE3=$(mktemp)    
+        convert "${COVERFILE}" -resize "600x600" "${TEMPFILE3}"
+        round_rectangles "${TEMPFILE3}" "${VINDAUGA_CACHE}/nowplaying.album.png"
+        rm "${TEMPFILE3}"
     fi
-    echo "${SONGSTRING}"
-    if [ "$COVERFILE" == "" ];then
-        COVERFILE=${DEFAULT_COVER}
-    fi
-    echo "${SONGSTRING}" > "${VINDAUGA_CACHE}/songinfo"
-    TEMPFILE3=$(mktemp)    
-    convert "${COVERFILE}" -resize "600x600" "${TEMPFILE3}"
-    round_rectangles "${TEMPFILE3}" "${VINDAUGA_CACHE}/nowplaying.album.png"
-    rm "${TEMPFILE3}"
 }
 
 display_help() {
