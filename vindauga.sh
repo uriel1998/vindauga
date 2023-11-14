@@ -49,6 +49,10 @@ if [ ! -d "${VINDAUGA_CACHE}" ];then
     fi
 fi
 
+if [ ! -f "${VINDAUGA_CACHE}/vindauga_bg.png" ];then
+    cp "${SCRIPT_DIR}/vindauga_bg.png" "${VINDAUGA_CACHE}/vindauga_bg.png"
+fi
+
 function round_rectangles (){
     
     #NEED TO CLEAN UP FILE HANDLING AND OUTPUT AND SHIT
@@ -104,7 +108,7 @@ function get_coverart () {
     if [ "$COVERFILE" == "" ];then
         COVERFILE=${DEFAULT_COVER}
     fi
-    echo "${SONGSTRING}" > "${CACHEDIR}/songinfo"
+    echo "${SONGSTRING}" > "${VINDAUGA_CACHE}/songinfo"
     TEMPFILE3=$(mktemp)    
     convert "${COVERFILE}" -resize "600x600" "${TEMPFILE3}"
     round_rectangles "${TEMPFILE3}" "${VINDAUGA_CACHE}/nowplaying.album.png"
