@@ -57,9 +57,10 @@ conky.config = {
 };
 
 conky.text = [[
-${alignr}${image /home/steven/.cache/vindauga/vindauga_bg.png -p -1,-1 -s 280x385}
-${exec head /home/steven/.cache/vindauga/songinfo | sed 's/ - /\n/g'}
+${execi 3 /path/to/vindauga.sh}
+${alignr}${image /home/USER/.cache/vindauga/vindauga_bg.png -p -1,-1 -s 280x385}
+${exec head /home/USER/.cache/vindauga/songinfo | sed 's/ - /\n/g'}
 ${if_match "${audacious_status}" == "Playing"}${audacious_bar 7,253}${endif}${if_mpd_playing}${mpd_bar 7,253}${endif}
-${image /home/steven/.cache/vindauga/nowplaying.album.png -p 12,110 -s 256x256}
+${image /home/USER/.cache/vindauga/nowplaying.album.png -p 12,110 -s 256x256}
 
 ]];
