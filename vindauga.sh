@@ -1,531 +1,144 @@
 #!/bin/bash
 
+##############################################################################
 # ┐ ┬o┌┐┐┬─┐┬─┐┬ ┐┌─┐┬─┐
 # │┌┘│││││ ││─┤│ ││ ┬│─┤
 # └┘ ││└┘│─┘┘ ││─┘│─┘┘ │
 #
-# by Steven Saus
 #
-# A (rather rewritten) fork of kunst (originally by Siddharth Dushantha)
+#  (c) Steven Saus 2023
+#  Licensed under the MIT license
+#
+##############################################################################
 
-
-tempcover=$(mktemp)
-tempartist=$(mktemp)
-RunOnce=""
-NoSXIV="false"
-DynamicConky="false"
-cachecover=""
-SXIVPID=""
-export XDG_CONFIG_HOME=$HOME/.config
-export XDG_CACHE_HOME=$HOME/.cache
-export XDG_DATA_HOME=$HOME/.local/share
-USER=""
-# Default config file, can be overriden in command line
-CONFIGFILE="$HOME/.config/vindauga.ini"
-# This is the global / active variable
-MPDHost=""
-
-# Pull in plugins
 export SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-#for plugin in ${SCRIPT_DIR}/plugins/*;do
-#    source ${plugin}
-#done
+LOUD=1
+SONGSTRING=""
+SONGFILE=""
+SONGDIR=""
+COVERFILE=""
+MPD_MUSIC_BASE="${HOME}/Music"
+DEFAULT_COVER="${SCRIPT_DIR}/defaultcover.jpg"
 
 
-# Use ionice if it exists
-HasIonice=$(which ionice)
-if [ -f "$HasIonice" ];then
-    "$HasIonice" -c3 -p$$
+function loud() {
+    if [ $LOUD -eq 1 ];then
+        echo "$@"
+    fi
+}
+
+if [ -z "${XDG_DATA_HOME}" ];then
+    export XDG_DATA_HOME="${HOME}/.local/share"
+    export XDG_CONFIG_HOME="${HOME}/.config"
+    export XDG_CACHE_HOME="${HOME}/.cache"
 fi
 
+if [ ! -d "${XDG_CACHE_HOME}" ];then
+    echo "Your XDG_CACHE_HOME variable is not properly set and does not exist."
+    exit 99
+fi
 
-##############################################################################
-# Read Ini File
-##############################################################################
-init () {    
-    read_ini
-    set_defaults
-}
-
-read_ini () {
-    if [ -f "${CONFIGFILE}" ];then
-        echo "[info] Reading configuration"
-        while read -r line; do 
-            key=$(echo "$line" | awk -F '=' '{print $1}')
-            value=$(echo "$line" | cut -d'=' -f 2- )
-           case $key in
-                musicdir) MUSICDIR="${value}";;
-                cachedir) CACHEDIR="${value}";;
-                placeholder_img) placeholder_img="${value}";;
-                placeholder_dir) placeholder_dir="${value}";;
-                display_size) display_size="${value}";;
-                XCoord) XCoord="${value}";;
-                YCoord) YCoord="${value}";;
-                ConkyFile) ConkyFile="${value}";; 
-                LastfmAPIKey) LastfmAPIKey="${value}";;
-                MPDHost1) MPDHost1="${value}";;
-                MPDHost2) MPDHost2="${value}";;
-                webcovers) webcovers="${value}";;
-                interval) interval="${value}";;
-                conkybin) conkybin="${value}";;
-                *) ;;
-            esac
-        done < "${CONFIGFILE}"
-        echo "[info] Finished reading configuration."
-    fi
-}
-
-set_defaults (){
-        
-    if [ -z "$MusicDir" ] || [ ! d "$MusicDir" ]; then MusicDir="$HOME/music"; fi
-    if [ -z "$display_size" ];then display_size=256; fi
-    if [ -z "$XCoord" ];then XCoord=64; fi
-    if [ -z "$YCoord" ];then YCoord=64; fi
-    if [ -z "$interval" ];then interval=1; fi    
-    if [ -z "$cachedir" ];then cachedir="$HOME/.cache/vindauga" ; fi
-    if [ ! -d "$cachedir" ];then mkdir -p "$cachedir"; fi
-    if [ -z "$conkybin" ];then conkybin=$(which conky); fi
-    if [ -z "$ConkyFile" ];then 
-        ConkyFile="$HOME/.conky/vindauga_conkyrc"
-        if [ ! -f ${ConkyFile} ];then
-            ConkyFile="${SCRIPT_DIR}/vindauga_conkyrc"
-        fi
-    fi
-    
-    # If MPDHost isn't defined, check for env variable, and default to localhost
-    if [ -z "$MPDHost1" ];then
-        if [ ! -z "$MPD_HOST" ];then
-            MPDHost1="$MPD_HOST"
-        else
-            MPDHost1="localhost"
-        fi
-    fi
-    
-    if [ -z "$MPDHost2" ];then
-        MPDHost2="$MPDHost1"
-    fi    
-
-echo "$MPDHost2"
-
-# This is a base64 endcoded image which will be used if nothing is found    
-read -d '' DEFAULT_COVER << EOF
-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
-EOF
-
-    if [ -d "$placeholder_dir" ];then
-        hasimgs=$(ls "$placeholder_dir" | egrep "jpeg|jpg|png|gif" -c )
-        if [ $hasimgs -lt 1 ]; then
-            if [ ! -f "$placeholder_img" ];then
-                echo "$DEFAULT_COVER" | base64 --decode > "$cachedir/default_cover.png"
-                placeholder_img="$cachedir/default_cover.png"
-                placeholder_dir=""      # the directory didn't have images
-            fi
-        else
-            placeholder_img=""
-        fi
+VINDAUGA_CACHE="${XDG_CACHE_HOME}/vindauga"
+if [ ! -d "${VINDAUGA_CACHE}" ];then
+    if [ -d "${XDG_CACHE_HOME}/yadshow" ];then
+        ln -s "${XDG_CACHE_HOME}/yadshow" "${XDG_CACHE_HOME}/vindauga"
     else
-        if [ ! -f "$placeholder_img" ];then
-            echo "$DEFAULT_COVER" | base64 --decode > "$cachedir/default_cover.png"
-            placeholder_img="$cachedir/default_cover.png"
+        loud "Making cache directory"
+        mkdir -p "${VINDAUGA_CACHE}"
+    fi
+fi
+
+if [ ! -f "${VINDAUGA_CACHE}/vindauga_bg.png" ];then
+    cp "${SCRIPT_DIR}/vindauga_bg.png" "${VINDAUGA_CACHE}/vindauga_bg.png"
+fi
+
+function round_rectangles (){
+    
+    #NEED TO CLEAN UP FILE HANDLING AND OUTPUT AND SHIT
+    
+    convert "${1}" \
+        -format 'roundrectangle 1,1 %[fx:w+4],%[fx:h+4] 15,15' \
+        -write info:tmp.mvg \
+        -alpha set -bordercolor none -border 3 \
+        \( +clone -alpha transparent -background none \
+        -fill white -stroke none -strokewidth 0 -draw @tmp.mvg \) \
+        -compose DstIn -composite \
+        \( +clone -alpha transparent -background none \
+        -fill none -stroke black -strokewidth 3 -draw @tmp.mvg \
+        -fill none -stroke white -strokewidth 1 -draw @tmp.mvg \) \
+        -compose Over -composite               "${2}"
+    rm tmp.mvg
+}
+
+
+function get_coverart () {
+    
+    ### Test audacious, local mpd, remote mpd ###
+    aud_status=$(audtool playback-status)
+    if [ "${aud_status}" == "playing" ];then
+        SONGSTRING=$(audtool current-song)
+        SONGFILE=$(audtool current-song-filename)
+    else
+        echo "hi"
+        # checking if MPD_HOST is set or exists in .bashrc
+        # if neither is set, will just go with defaults (which will fail if 
+        # password is set.) 
+        if [ "$MPD_HOST" == "" ];then
+            export MPD_HOST=$(cat "${HOME}/.bashrc" | grep MPD_HOST | awk -F '=' '{print $2}')
+        fi
+        status=$(mpc | grep -c -e "\[")
+        if [ $status -lt 1 ];then
+            echo "Not playing or paused"            
+        else
+            SONGFILE="${MPD_MUSIC_BASE}"/$(mpc current --format %file%)
+            SONGSTRING=$(mpc current --format "%artist% - %album% - %title%")
         fi
     fi
-
-    # Logic here - if there's a placeholder directory with png or jpg in it, 
-    # use that.  If not, see if there's a specific placeholder image. If not,
-    # then output one.
-
+    if [ -f "${SONGFILE}" ];then 
+        SONGDIR=$(dirname "$(readlink -f "${SONGFILE}")")
+    
+        if [ -f "$SONGDIR"/folder.jpg ];then
+            COVERFILE="$SONGDIR"/folder.jpg
+        else
+            if [ -f "$SONGDIR"/cover.jpg ];then
+                COVERFILE="$SONGDIR"/cover.jpg
+            fi
+        fi
+    fi
+    echo "${SONGSTRING}"
+    if [ "$COVERFILE" == "" ];then
+        COVERFILE=${DEFAULT_COVER}
+    fi
+    echo "${SONGSTRING}" > "${VINDAUGA_CACHE}/songinfo"
+    TEMPFILE3=$(mktemp)    
+    convert "${COVERFILE}" -resize "600x600" "${TEMPFILE3}"
+    round_rectangles "${TEMPFILE3}" "${VINDAUGA_CACHE}/nowplaying.album.png"
+    rm "${TEMPFILE3}"
 }
 
 display_help() {
     ##############################################################################
     # Show help on cli
     ##############################################################################
-	echo "usage: vindauga.sh [-h][-c][-y]"
-	echo " "
-	echo "┐ ┬o┌┐┐┬─┐┬─┐┬ ┐┌─┐┬─┐"
-	echo "│┌┘│││││ ││─┤│ ││ ┬│─┤"
-	echo "└┘ ┆┆└┘┆─┘┘ ┆┆─┘┆─┘┘ ┆"
-	echo "Download and display album art or display embedded album art"
-	echo " "
-	echo "optional arguments:"
-	echo "   -h     show this help message and exit"
-	echo "   -c     run once and exit"    
-	echo "   -y     do not use sxiv (e.g. for the art to be picked up by conky)"        
-	echo "   -k     kill an existing background instance of vindauga"   
+    echo "usage: vindauga.sh [-h][-c][-y]"
+    echo " "
+    echo "┐ ┬o┌┐┐┬─┐┬─┐┬ ┐┌─┐┬─┐"
+    echo "│┌┘│││││ ││─┤│ ││ ┬│─┤"
+    echo "└┘ ┆┆└┘┆─┘┘ ┆┆─┘┆─┘┘ ┆"
+    echo "Download and display album art or display embedded album art"
+    echo " "
+    echo "optional arguments:"
+    echo "   -h     show this help message and exit"
+    echo "   -c     run once and exit"    
+    echo "   -y     do not use sxiv (e.g. for the art to be picked up by conky)"        
+    echo "   -k     kill an existing background instance of vindauga"   
     echo "   -i     use a specific configuration file"
     echo "   -t     write mpc output to tempfile for remote mpc and conky"
 }
 
-playtester () {
-    local playtest=$(mpc --host "$1" --format "" | head -2 | tail -1 | awk -F ']' '{print $1}' | grep -e '^\[p' -c )
-    printf "%s" "${playtest}"
-}
-
-mpd_infogetter () {
-    # Using the global variable here
-    IFS=$'\t' mpd_array=( $(mpc --host "$MPDHost" --format "\t%artist%\t%album%\t%file%\t%albumartist%\t%title%\t") );
-    Artist=$(echo "${mpd_array[0]}" | sed -e 's/^[ \t]*//')
-    EscapedArtist=$(echo "${mpd_array[0]}" | sed -e 's/[/()&]//g')
-    Album=$(echo "${mpd_array[1]}" | sed -e 's/^[ \t]*//' )
-    EscapedAlbum=$(echo "${mpd_array[1]}" | sed -e 's/[/()&]//g')
-    SongFile=$(echo "$MusicDir/${mpd_array[2]}" | sed -e 's/^[ \t]*//')
-    AlbumDir=$(dirname "$SongFile")
-    AlbumArtist=$(echo "${mpd_array[3]}" | sed -e 's/^[ \t]*//' )
-    EscapedAlbumArtist=$(echo "${mpd_array[3]}" | sed -e 's/[/()&]//g')
-    Title=$(echo "${mpd_array[4]}" | sed -e 's/^[ \t]*//' )
-    StatusLine=$(echo "${mpd_array[5]}" | tail -2 | head -1 | awk '{print $1" "$3 $4}')
-}
-
-##############################################################################
-# Big updating artist function
-##############################################################################
-update_artist() {
-    
-
-    ######################################################################
-    #  Artist image
-    ######################################################################
-    if [[ ! -f "$cacheartist" ]] ;then
-       
-
-        if [ -z "$IMG_URL" ];then    
-            API_URL="https://api.deezer.com/search/artist?q=$EscapedArtist" && API_URL=${API_URL//' '/'%20'}
-            IMG_URL=$(curl -s "$API_URL" | jq -r '.data[0] | .picture_big ')
-            #deezer outputs a wonky url if there's no image match, this checks for it.
-            # https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg
-            check=$(awk 'BEGIN{print gsub(ARGV[2],"",ARGV[1])}' "$IMG_URL" "//")
-            if [ "$check" != "1" ]; then
-                IMG_URL=""
-            fi
-        fi
-
-        if [ ! -z "$LastfmAPIKey" ] && [ -z "$IMG_URL" ];then  # deezer first, then lastfm
-            METHOD=artist.getinfo
-            API_URL="https://ws.audioscrobbler.com/2.0/?method=$METHOD&artist=$EscapedArtist&api_key=$LastfmAPIKey&format=json" && API_URL=${API_URL//' '/'%20'}
-            IMG_URL=$(curl -s "$API_URL" | jq -r ' .artist | .image ' | grep -B1 -w "extralarge" | grep -v "extralarge" | awk -F '"' '{print $4}')            
-        fi           
-        
-        wget -q "$IMG_URL" -O "$tempartist"
-        bob=$(file "$tempartist" | head -1)  #It really is an image
-        sizecheck=$(wc -c "$tempartist" | awk '{print $1}')
-        if [[ "$bob" == *"image data"* ]];then
-            if [ "$sizecheck" != "4195" ];then
-                convert "$tempartist" "$cacheartist"
-                rm "$tempartist"
-            fi
-        fi
-        rm "$tempartist"
-    fi
- 
-    
-}
-
-##############################################################################
-# Big updating cover function
-##############################################################################
-update_cover() {
-
-    ##########################################################################
-    # Test for existing cache
-    ##########################################################################
-
-    # Preferentially using album artist if available. 
-    if [ ! -z ${EscapedAlbumArtist} ];then
-        cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedAlbumArtist")
-        cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedAlbumArtist" "$EscapedAlbum")
-    else
-        cacheartist=$(printf "%s/%s-artist.jpg" "$cachedir" "$EscapedArtist")
-        cachecover=$(printf "%s/%s-%s-album.jpg" "$cachedir" "$EscapedArtist" "$EscapedAlbum")
-    fi
-    
-    update_artist
-    
-    if [[ ! -f "$cachecover" ]] ;then
-
-        ##########################################################################
-        # Get local cover art first
-        ##########################################################################
-        CoverImage=$(echo "$AlbumDir/folder.jpg")
-        if [ ! -f "$CoverImage" ];then
-            CoverImage=$(echo "$AlbumDir/cover.jpg")
-            if [ ! -f "$CoverImage" ];then
-                CoverImage=$(echo "$AlbumDir/folder.png")
-                if [ ! -f "$CoverImage" ];then
-                    CoverImage=$(echo "$AlbumDir/cover.png")
-                    if [ ! -f "$CoverImage" ]; then
-                        TempString=$(ls "$AlbumDir" | egrep "jpeg|jpg|png|gif" | head -n 1)
-                        CoverImage=$(echo "$AlbumDir/$TempString")
-                    fi
-                fi
-            fi
-        fi
-        ##########################################################################
-        # Attempt to extract cover art from MP3 if not in musicdir
-        # (no cache cover, no local art in directory
-        ##########################################################################
-        
-        if [ ! -f "$CoverImage" ];then
-            ffmpeg -i "$SongFile" $tempcover -y &> /dev/null
-            STATUS=$?
-            # Check if the file has a embbeded album art
-            if [ $STATUS -eq 0 ];then
-                CoverImage=$(echo "$tempcover")
-            fi
-        fi
-                
-        ##########################################################################
-        # Attempt to get coverart from CoverArt Archive or Deezer
-        ##########################################################################
-        MBID=""
-        IMG_URL=""
-        API_URL=""   
-        
-        if [ ! -f "$CoverImage" ];then
-            MBID=$(ffmpeg -i "$SongFile" 2>&1 | grep "MusicBrainz Album Id:" | awk -F ': ' '{print $2}')
-            if [ "$MBID" = '' ] || [ "$MBID" = 'null' ];then
-                API_URL="http://api.deezer.com/search/autocomplete?q=${mpd_array[0]}-${mpd_array[1]}" && API_URL=${API_URL//' '/'%20'}
-                IMG_URL=$(curl -s "$API_URL" | jq -r '.playlists.data[0] | .picture_big')
-            else
-                API_URL="http://coverartarchive.org/release/$MBID/front"
-                IMG_URL=$(curl "$API_URL" | awk -F ': ' '{print $2}')
-            fi
-            
-            if [ "$IMG_URL" = '' ] || [ "$IMG_URL" = 'null' ];then
-                echo "Not on CoverArt Archive or Deezer"
-            else
-                # I don't know why curl hates me here.
-                #curl -o "$tempcover" "$IMG_URL"
-                wget -q "$IMG_URL" -O "$tempcover"
-                if [ -f "$tempcover" ];then
-                    CoverImage=$(echo "$tempcover")
-                fi
-            fi
-        fi
-        
-        ##########################################################################
-        # Attempt to find cover art via sacad if it's in $PATH
-        # (no cache cover, no local art in directory
-        ##########################################################################
-        if [ ! -f "$CoverImage" ];then
-            local sacad_bin=$(which sacad)
-            if [ -f "${sacad_bin}" ];then 
-                "${sacad_bin}" -d "${Artist}" "${Album}" 512 "${tempcover}"
-                CoverImage=$(echo "$tempcover")
-            fi
-        fi
-        
-        ##########################################################################
-        # Copy our found file to the cache
-        ##########################################################################
-        if [[ ! -f "$cachecover" ]] ; then
-            if [ -f "$CoverImage" ];then
-            
-                # use convert instead of copy here so it doesn't matter if it
-                # downloaded/found a png or jpg or jpeg
-                convert "$CoverImage" "$cachecover"
-                convert "$CoverImage"  -resize "$display_size" "$cachedir"/nowplaying.album.jpg
-            fi
-        fi   
-    else
-        convert "$cachecover" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
-    fi
-    if [ ! -f "$cachedir"/nowplaying.album.jpg ];then
-        if [ ! -z "$placeholder_dir" ];then
-            TempString=$(ls "$placeholder_dir" | egrep "jpeg|jpg|png|gif" | shuf | head -n 1)
-            CoverImage=$(echo "$placeholder_dir/$TempString")
-            convert "$CoverImage" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
-        else
-            phi=$(which imgholder.sh)
-            if [ -f "$phi" ];then
-                bob=$($phi -p picsum -o "$tempcover" )
-                if [ -f "$tempcover" ];then
-                    convert "$tempcover" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
-                else
-                    convert "$tempcover" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
-                fi
-            fi
-        fi
-    fi
-}
-
-
-pre_exit() {
-	# Get the proccess ID of vindauga and kill it.
-    # We are dumping the output of kill to /dev/null
-    # because if the user quits sxiv before they
-    # exit vindauga, an error will be shown
-    # from kill and we dont want that
-    if [ -f /tmp/sxiv.pid ];then
-        kill -9 $(cat /tmp/sxiv.pid) &> /dev/null
-        rm /tmp/sxiv.pid
-    fi
-    if [ -f /tmp/vconky.pid ];then    
-        kill -9 $(cat /tmp/vconky.pid) &> /dev/null
-        rm /tmp/vconky.pid
-    fi
-}
-
-killing() {
-    
-pre_exit
-VPID=$(cat /tmp/vindauga.pid)
-rm /tmp/vindauga.pid
-kill -9 "$VPID" &> /dev/null
-
-exit
-}
-
-main() {
-
-	# Flag to run some commands only once in the loop
-	FIRST_RUN=true
-
-    # If there is a second MPD config, check player 1
-    # If there is not a second MPD config, use player 1 as player
-    # If player 1 is running, use that.
-    # If player 1 is not, see if player 2 is up.
-
-	while true; do 
-        if [ ! -z "${MPDHost2}" ];then
-            local tempstatus=$(playtester "${MPDHost1}")
-            if [ ${tempstatus} -gt 0 ];then
-                MPDHost="${MPDHost1}"
-            else
-                tempstatus=$(playtester "${MPDHost2}")
-                if [ ${tempstatus} -gt 0 ];then
-                    MPDHost="${MPDHost2}"
-                fi
-            fi
-        else
-            MPDHost="${MPDHost1}"
-        fi
-        
-        PercentDone=$(echo "${StatusLine}" | cut -d '(' -f 2- | cut -d '%' -f 1)
-        mpd_infogetter
-        
-############## THIS NEEDS TO BE A MODULE        
-#        printf "  %s\n" "${Artist}" > ${cachedir}/nowplaying.txt
-#        printf "  %s\n" "${Album}" >> ${cachedir}/nowplaying.txt
-#        printf "  %s\n" "${Title}" >> ${cachedir}/nowplaying.txt
-#        printf "  %s\n" "${StatusLine}" >> ${cachedir}/nowplaying.txt
-#        printf "%s\n" "${PercentDone}" > ${cachedir}/percent.txt
-######################################################################
-        
-		update_cover
-        
-        if [ ! -f "$cachedir"/nowplaying.album.jpg ];then
-            convert "$placeholder_img" -resize "$display_size" "$cachedir"/nowplaying.album.jpg
-        fi
-        
-        if [ "$NoSXIV" = "false" ];then            
-            # USE SXIV
-            # Resetting SXIVPID if it tries to scroll *just* as we change 
-            # covers. You will want to set a fixed position in your rc.xml
-            if [ ! -z "$SXIVPID" ];then
-                if ! ps -p "$SXIVPID" > /dev/null 
-                then
-                    FIRST_RUN=true
-                fi
-            fi
-            
-            if [ $FIRST_RUN == true ]; then
-                FIRST_RUN=false
-                # Display the album art using sxiv
-                geometrystring=$(printf "%sx%s+%s+%s" "$display_size" "$display_size" "$XCoord" "$YCoord")
-                sxiv -g "$geometrystring" -b "$cachedir"/nowplaying.album.jpg -S 2 -N "vindauga" &
-                echo $! >/tmp/sxiv.pid
-                # Save the process ID so that we can kill
-                # sxiv when the user exits the script
-                SXIVPID=$(echo $!)
-			fi
-        else
-            if [ "$DynamicConky" = "true" ]; then
-                # USE CONKY
-                # Resetting Conky if need be
-                if [ ! -z "$VCONKYPID" ];then
-                    if ! ps -p "$VCONKYPID" > /dev/null 
-                    then
-                        FIRST_RUN=true
-                    fi
-                fi
-                # Test to make sure settings are up to dates
-                if [ ${MPDHost} != ${MPD_HOST} ];then
-                    FIRST_RUN=true
-                fi
-                if [ $FIRST_RUN == true ]; then
-                    FIRST_RUN=false 
-                    # Needed to set to see if reset needed of conky
-                    conkympdhost=$(echo "${MPDHost}" | awk -F '@' '{print $2}')
-                    conkympdpass=$(echo "${MPDHost}" | awk -F '@' '{print $1}')
-                    # Needed for conky to use the right host stuff for MPD
-                    sed -i "s/mpd_host.*/mpd_host = \'${conkympdhost}',/" "${ConkyFile}"
-                    sed -i "s/mpd_password.*/mpd_password = \'${conkympdpass}\',/" "${ConkyFile}"
-                    export MPD_HOST=${MPDHost}
-                    ${conkybin} -c "$ConkyFile" & 
-                    echo $! >/tmp/vconky.pid
-                    VCONKYPID=$(echo $!)
-                fi
-            fi
-		fi
-
-        if [ "$RunOnce" = "true" ];then
-            break
-        fi
-		# Waiting for an event from mpd; play/pause/next/previous
-		# this is lets vindauga use less CPU :)
-        CHANGES=""
-        mpc --host "$MPDHost1" idle & &> /dev/null 
-        MPC_PID1="$!"
-        mpc --host "$MPDHost2" idle & &> /dev/null 
-        MPC_PID2="$!"
-        while [ -z ${CHANGES} ]; do
-            sleep ${interval}
-            if ps -p $MPC_PID1 > /dev/null; then
-                if ps -p $MPC_PID2 > /dev/null; then
-                    continue
-                else
-                    CHANGES="TRUE"
-                fi
-            else
-                CHANGES="TRUE"
-            fi
-        done
-        kill -9 "$MPC_PID1" &> /dev/null
-        kill -9 "$MPC_PID2" &> /dev/null
-   done
-}
-
-# Command Line Options
-while [ $# -gt 0 ]; do
-option="$1"
-    case $option
-    in
-    -i) shift
-    CONFIGFILE="$1"
-    shift;;
-    -c) RunOnce="true"
-    shift ;;   
-    -h) display_help
+if [ "$1" == "-h" ];then
+    display_help
     exit
-    shift ;;         
-    -t) TEMPFILE="true"
-    shift ;;  
-    -z) DynamicConky="true"
-    shift ;;      
-    -y) NoSXIV="true"
-    shift ;;       
-    -k) killing
-    shift ;;    
-    esac
-done
+fi
 
-echo "$$" > /tmp/vindauga.pid
-
-init
-# Disable CTRL-Z because if we allowed this key press,
-# then the script would exit but, sxiv would still be
-# running
-trap "" SIGTSTP
-
-trap pre_exit EXIT
-main
+get_coverart
