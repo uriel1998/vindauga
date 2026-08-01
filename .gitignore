@@ -1,5 +1,23 @@
 # reference, old shit
 1_reference/
+.agents/
+.codex/
+
+# Local runtime/cache output
+*.swp
+*.swo
+*~
+.cache/
+tmp/
+*.tmp
+*.bak
+
+# Generated docs output
+docs/_site/
+
+# Editor settings
+.idea/
+
 
 # macOS Junks
 .DS_Store

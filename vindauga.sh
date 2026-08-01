@@ -11,7 +11,8 @@
 #
 ##############################################################################
 
-export SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+export SCRIPT_DIR
 LOUD=1
 SONGSTRING=""
 SONGFILE=""
@@ -19,60 +20,100 @@ SONGDIR=""
 COVERFILE=""
 MPD_MUSIC_BASE="${HOME}/Music"
 DEFAULT_COVER="${SCRIPT_DIR}/defaultcover.jpg"
+VINDAUGA_CACHE=""
 
 
 function loud() {
-    if [ $LOUD -eq 1 ];then
+    if [ "$LOUD" -eq 1 ];then
         echo "$@"
     fi
 }
 
-if [ -z "${XDG_DATA_HOME}" ];then
-    export XDG_DATA_HOME="${HOME}/.local/share"
-    export XDG_CONFIG_HOME="${HOME}/.config"
-    export XDG_CACHE_HOME="${HOME}/.cache"
-fi
-
-if [ ! -d "${XDG_CACHE_HOME}" ];then
-    echo "Your XDG_CACHE_HOME variable is not properly set and does not exist."
-    exit 99
-fi
-
-VINDAUGA_CACHE="${XDG_CACHE_HOME}/vindauga"
-if [ ! -d "${VINDAUGA_CACHE}" ];then
-    if [ -d "${XDG_CACHE_HOME}/yadshow" ];then
-        ln -s "${XDG_CACHE_HOME}/yadshow" "${XDG_CACHE_HOME}/vindauga"
-    else
-        loud "Making cache directory"
-        mkdir -p "${VINDAUGA_CACHE}"
+init_cache() {
+    if [ -z "${XDG_DATA_HOME}" ];then
+        export XDG_DATA_HOME="${HOME}/.local/share"
     fi
-fi
+    if [ -z "${XDG_CONFIG_HOME}" ];then
+        export XDG_CONFIG_HOME="${HOME}/.config"
+    fi
+    if [ -z "${XDG_CACHE_HOME}" ];then
+        export XDG_CACHE_HOME="${HOME}/.cache"
+    fi
 
-if [ ! -f "${VINDAUGA_CACHE}/vindauga_bg.png" ];then
-    cp "${SCRIPT_DIR}/vindauga_bg.png" "${VINDAUGA_CACHE}/vindauga_bg.png"
-fi
+    if [ ! -d "${XDG_CACHE_HOME}" ];then
+        echo "Your XDG_CACHE_HOME variable is not properly set and does not exist." >&2
+        return 99
+    fi
 
-function round_rectangles (){
-    
-    #NEED TO CLEAN UP FILE HANDLING AND OUTPUT AND SHIT
-    
-    convert "${1}" \
-        -format 'roundrectangle 1,1 %[fx:w+4],%[fx:h+4] 15,15' \
-        -write info:tmp.mvg \
-        -alpha set -bordercolor none -border 3 \
-        \( +clone -alpha transparent -background none \
-        -fill white -stroke none -strokewidth 0 -draw @tmp.mvg \) \
-        -compose DstIn -composite \
-        \( +clone -alpha transparent -background none \
-        -fill none -stroke black -strokewidth 3 -draw @tmp.mvg \
-        -fill none -stroke white -strokewidth 1 -draw @tmp.mvg \) \
-        -compose Over -composite               "${2}"
-    rm tmp.mvg
+    VINDAUGA_CACHE="${XDG_CACHE_HOME}/vindauga"
+    if [ ! -d "${VINDAUGA_CACHE}" ];then
+        if [ -d "${XDG_CACHE_HOME}/yadshow" ];then
+            if ! ln -s "${XDG_CACHE_HOME}/yadshow" "${VINDAUGA_CACHE}";then
+                echo "Unable to create cache symlink at ${VINDAUGA_CACHE}." >&2
+                return 1
+            fi
+        else
+            loud "Making cache directory"
+            if ! mkdir -p "${VINDAUGA_CACHE}";then
+                echo "Unable to create cache directory at ${VINDAUGA_CACHE}." >&2
+                return 1
+            fi
+        fi
+    fi
+
+    if [ ! -f "${VINDAUGA_CACHE}/vindauga_bg.png" ];then
+        if ! cp "${SCRIPT_DIR}/vindauga_bg.png" "${VINDAUGA_CACHE}/vindauga_bg.png";then
+            echo "Unable to initialize cache assets in ${VINDAUGA_CACHE}." >&2
+            return 1
+        fi
+    fi
 }
 
+function round_rectangles (){
+    local draw_cmd
+    local width
+    local height
+
+    width=$(identify -format "%w" "${1}") || return 1
+    height=$(identify -format "%h" "${1}") || return 1
+    draw_cmd="roundrectangle 1,1 $((width + 4)),$((height + 4)) 15,15"
+
+    convert "${1}" \
+        -alpha set -bordercolor none -border 3 \
+        \( +clone -alpha transparent -background none \
+        -fill white -stroke none -strokewidth 0 -draw "${draw_cmd}" \) \
+        -compose DstIn -composite \
+        \( +clone -alpha transparent -background none \
+        -fill none -stroke black -strokewidth 3 -draw "${draw_cmd}" \
+        -fill none -stroke white -strokewidth 1 -draw "${draw_cmd}" \) \
+        -compose Over -composite "${2}"
+}
+
+load_mpd_host() {
+    local mpd_line
+
+    [ -n "${MPD_HOST}" ] && return 0
+    [ -f "${HOME}/.bashrc" ] || return 0
+
+    mpd_line=$(grep -E '^[[:space:]]*(export[[:space:]]+)?MPD_HOST=' "${HOME}/.bashrc" | tail -n 1) || return 0
+    mpd_line=${mpd_line#export }
+    mpd_line=${mpd_line#MPD_HOST=}
+    mpd_line="${mpd_line%\"}"
+    mpd_line="${mpd_line#\"}"
+    mpd_line="${mpd_line%\'}"
+    mpd_line="${mpd_line#\'}"
+
+    if [ -n "${mpd_line}" ];then
+        export MPD_HOST="${mpd_line}"
+    fi
+}
 
 function get_coverart () {
-    
+    local aud_status
+    local status
+    local songcheck
+    local tempfile3
+
     ### Test audacious, local mpd, remote mpd ###
     aud_status=$(audtool playback-status)
     if [ "${aud_status}" == "playing" ];then
@@ -80,21 +121,23 @@ function get_coverart () {
         SONGFILE=$(audtool current-song-filename)
     else
         # checking if MPD_HOST is set or exists in .bashrc
-        # if neither is set, will just go with defaults (which will fail if 
-        # password is set.) 
-        if [ "$MPD_HOST" == "" ];then
-            export MPD_HOST=$(cat "${HOME}/.bashrc" | grep MPD_HOST | awk -F '=' '{print $2}')
-        fi
+        # if neither is set, will just go with defaults (which will fail if
+        # password is set.)
+        load_mpd_host
         status=$(mpc | grep -c -e "\[")
-        if [ $status -lt 1 ];then
+        if [ "${status}" -lt 1 ];then
             echo "Not playing or paused"            
         else
             SONGFILE="${MPD_MUSIC_BASE}"/$(mpc current --format %file%)
             SONGSTRING=$(mpc current --format "%artist% - %album% - %title%")
         fi
     fi
-    SONGCHECK=$(head -1 "${VINDAUGA_CACHE}/songinfo")
-    if [ "${SONGSTRING}" != "${SONGCHECK}" ];then 
+    if [ -f "${VINDAUGA_CACHE}/songinfo" ];then
+        songcheck=$(head -1 "${VINDAUGA_CACHE}/songinfo")
+    else
+        songcheck=""
+    fi
+    if [ "${SONGSTRING}" != "${songcheck}" ];then
         if [ -f "${SONGFILE}" ];then 
             SONGDIR=$(dirname "$(readlink -f "${SONGFILE}")")
         
@@ -110,10 +153,16 @@ function get_coverart () {
             COVERFILE=${DEFAULT_COVER}
         fi
         echo "${SONGSTRING}" > "${VINDAUGA_CACHE}/songinfo"
-        TEMPFILE3=$(mktemp)    
-        convert "${COVERFILE}" -resize "600x600" "${TEMPFILE3}"
-        round_rectangles "${TEMPFILE3}" "${VINDAUGA_CACHE}/nowplaying.album.png"
-        rm "${TEMPFILE3}"
+        tempfile3=$(mktemp "${VINDAUGA_CACHE}/cover.XXXXXX.png") || return 1
+        if ! convert "${COVERFILE}" -resize "600x600" "${tempfile3}";then
+            rm -f "${tempfile3}"
+            return 1
+        fi
+        if ! round_rectangles "${tempfile3}" "${VINDAUGA_CACHE}/nowplaying.album.png";then
+            rm -f "${tempfile3}"
+            return 1
+        fi
+        rm -f "${tempfile3}"
     fi
 }
 
@@ -121,7 +170,7 @@ display_help() {
     ##############################################################################
     # Show help on cli
     ##############################################################################
-    echo "usage: vindauga.sh [-h][-c][-y]"
+    echo "usage: vindauga.sh [-h]"
     echo " "
     echo "┐ ┬o┌┐┐┬─┐┬─┐┬ ┐┌─┐┬─┐"
     echo "│┌┘│││││ ││─┤│ ││ ┬│─┤"
@@ -130,16 +179,21 @@ display_help() {
     echo " "
     echo "optional arguments:"
     echo "   -h     show this help message and exit"
-    echo "   -c     run once and exit"    
-    echo "   -y     do not use sxiv (e.g. for the art to be picked up by conky)"        
-    echo "   -k     kill an existing background instance of vindauga"   
-    echo "   -i     use a specific configuration file"
-    echo "   -t     write mpc output to tempfile for remote mpc and conky"
 }
 
-if [ "$1" == "-h" ];then
-    display_help
-    exit
-fi
+case "${1:-}" in
+    "")
+        ;;
+    -h|--help)
+        display_help
+        exit 0
+        ;;
+    *)
+        echo "Unknown option: ${1}" >&2
+        display_help >&2
+        exit 2
+        ;;
+esac
 
+init_cache || exit $?
 get_coverart
